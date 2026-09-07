@@ -6,6 +6,8 @@
 <title>전체상품 | 리브가전</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -177,22 +179,64 @@ const tvIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const kitchenIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`;
 const livingIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
 
-const products = [
-  {id:1, brand:'삼성전자', name:'BESPOKE 냉장고 4도어 875L', list:3299000, price:1814000, rate:45, icon:fridgeIcon, cat:'fridge', rating:4.8, reviews:214, soldout:false},
-  {id:2, brand:'LG전자', name:'오브제컬렉션 세탁건조기 21kg', list:2890000, price:1908000, rate:34, icon:laundryIcon, cat:'laundry', rating:4.6, reviews:98, soldout:false},
-  {id:3, brand:'삼성전자', name:'Neo QLED 4K TV 65형', list:3190000, price:1975000, rate:38, icon:tvIcon, cat:'tv', rating:4.8, reviews:176, soldout:false},
-  {id:4, brand:'LG전자', name:'퓨리케어 공기청정기 360°', list:890000, price:623000, rate:30, icon:livingIcon, cat:'living', rating:4.5, reviews:60, soldout:false},
-  {id:5, brand:'삼성전자', name:'BESPOKE 김치냉장고 4도어', list:2190000, price:1533000, rate:30, icon:fridgeIcon, cat:'fridge', rating:4.8, reviews:214, soldout:false},
-  {id:6, brand:'LG전자', name:'오브제컬렉션 냉장고 4도어', list:3450000, price:2415000, rate:30, icon:fridgeIcon, cat:'fridge', rating:4.7, reviews:132, soldout:false},
-  {id:7, brand:'삼성전자', name:'BESPOKE 세탁기 24kg', list:1690000, price:1183000, rate:30, icon:laundryIcon, cat:'laundry', rating:4.9, reviews:301, soldout:false},
-  {id:8, brand:'LG전자', name:'트롬 건조기 히트펌프 21kg', list:1590000, price:1113000, rate:30, icon:laundryIcon, cat:'laundry', rating:4.6, reviews:98, soldout:true},
-  {id:9, brand:'삼성전자', name:'OLED TV 55형', list:2390000, price:1673000, rate:30, icon:tvIcon, cat:'tv', rating:4.8, reviews:176, soldout:false},
-  {id:10, brand:'LG전자', name:'울트라HD 스마트 TV 75형', list:2790000, price:1953000, rate:30, icon:tvIcon, cat:'tv', rating:4.5, reviews:87, soldout:false},
-  {id:11, brand:'삼성전자', name:'비스포크 광파오븐', list:590000, price:413000, rate:30, icon:kitchenIcon, cat:'kitchen', rating:4.7, reviews:64, soldout:false},
-  {id:12, brand:'LG전자', name:'디오스 식기세척기 12인용', list:1290000, price:903000, rate:30, icon:kitchenIcon, cat:'kitchen', rating:4.6, reviews:120, soldout:false},
-];
+const CATEGORY_ICON_MAP = {
+  '냉장고':fridgeIcon, '김치냉장고':fridgeIcon, '세탁/건조':laundryIcon, 'TV':tvIcon,
+  '주방가전':kitchenIcon, '생활가전':livingIcon, '에어컨':kitchenIcon, '청소/공기관리':livingIcon,
+};
+
+let products = [];
 
 function won(n){return n.toLocaleString('ko-KR')+'원';}
+
+async function loadProducts(){
+  const { data: rows, error } = await window.sb
+    .from('products')
+    .select(`
+      id, name, list_price, sale_price, discount_rate, status, created_at,
+      brands ( name ),
+      categories ( name ),
+      product_options ( id, inventories ( current_stock ) )
+    `);
+
+  if(error){
+    console.error(error);
+    document.getElementById('productGrid').innerHTML = '<p style="padding:40px 0; color:#7C8398;">상품을 불러오지 못했습니다.</p>';
+    return;
+  }
+
+  const { data: reviewRows } = await window.sb
+    .from('reviews')
+    .select('product_id, rating')
+    .eq('visible', true);
+
+  const reviewMap = {};
+  (reviewRows||[]).forEach(r=>{
+    if(!reviewMap[r.product_id]) reviewMap[r.product_id] = {sum:0, count:0};
+    reviewMap[r.product_id].sum += r.rating;
+    reviewMap[r.product_id].count += 1;
+  });
+
+  products = (rows||[]).map(p=>{
+    const totalStock = (p.product_options||[]).reduce((s,o)=> s + (o.inventories?.[0]?.current_stock || 0), 0);
+    const rv = reviewMap[p.id] || {sum:0, count:0};
+    return {
+      id: p.id,
+      brand: p.brands?.name || '',
+      name: p.name,
+      cat: p.categories?.name || '',
+      list: p.list_price,
+      price: p.sale_price,
+      rate: p.discount_rate,
+      icon: CATEGORY_ICON_MAP[p.categories?.name] || fridgeIcon,
+      rating: rv.count ? (rv.sum/rv.count).toFixed(1) : '0.0',
+      reviews: rv.count,
+      soldout: totalStock === 0 || p.status === '품절',
+      created_at: p.created_at,
+    };
+  });
+
+  render();
+}
 
 function cardHTML(p){
   return `
@@ -219,23 +263,28 @@ function cardHTML(p){
 let currentSort = 'popular';
 function getFilteredCat(){
   const params = new URLSearchParams(location.search);
-  return params.get('cat');
+  const slug = params.get('cat');
+  return slug ? window.CATEGORY_SLUG_MAP[slug] : null;
+}
+function isDiscountOnly(){
+  return new URLSearchParams(location.search).get('discount') === '1';
 }
 
 function render(){
   let list = [...products];
   const cat = getFilteredCat();
   if(cat) list = list.filter(p=>p.cat===cat);
+  if(isDiscountOnly()) list = list.filter(p=>p.rate>0);
 
   if(currentSort==='low') list.sort((a,b)=>a.price-b.price);
   else if(currentSort==='high') list.sort((a,b)=>b.price-a.price);
-  else if(currentSort==='new') list.sort((a,b)=>b.id-a.id);
+  else if(currentSort==='new') list.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   else list.sort((a,b)=>b.reviews-a.reviews);
 
   document.getElementById('productGrid').innerHTML = list.map(cardHTML).join('');
   document.getElementById('countNum').textContent = list.length;
 }
-render();
+loadProducts();
 
 document.getElementById('sortTabs').addEventListener('click', (e)=>{
   const btn = e.target.closest('button');

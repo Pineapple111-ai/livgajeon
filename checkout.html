@@ -312,7 +312,15 @@ document.getElementById('payBtn').addEventListener('click', async ()=>{
   payBtn.disabled = true;
   payBtn.textContent = '결제 처리 중...';
 
-  const { data: { session } } = await window.sb.auth.getSession();
+  const { data: { session }, error: sessionError } = await window.sb.auth.getSession();
+
+  if(sessionError || !session){
+    alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+    payBtn.disabled = false;
+    renderOrderItems();
+    location.href = 'auth.html';
+    return;
+  }
 
   try {
     const res = await fetch('/.netlify/functions/create-order', {
@@ -325,10 +333,20 @@ document.getElementById('payBtn').addEventListener('click', async ()=>{
         cartIds, receiver_name, receiver_phone, address, address_detail, request_note, payment_method,
       }),
     });
-    const result = await res.json();
+
+    let result;
+    try {
+      result = await res.json();
+    } catch(parseErr){
+      console.error('응답 파싱 실패:', parseErr);
+      alert(`서버 응답을 처리하지 못했습니다. (상태 코드: ${res.status})`);
+      payBtn.disabled = false;
+      renderOrderItems();
+      return;
+    }
 
     if(!res.ok){
-      alert(result.error || '주문 처리에 실패했습니다.');
+      alert(result.error || `주문 처리에 실패했습니다. (상태 코드: ${res.status})`);
       payBtn.disabled = false;
       renderOrderItems();
       return;
@@ -340,7 +358,8 @@ document.getElementById('payBtn').addEventListener('click', async ()=>{
     document.getElementById('completeView').style.display = 'block';
     window.scrollTo(0,0);
   } catch(err){
-    alert('네트워크 오류로 주문에 실패했습니다. 다시 시도해주세요.');
+    console.error('주문 요청 실패:', err);
+    alert('네트워크 오류로 주문에 실패했습니다: ' + err.message);
     payBtn.disabled = false;
     renderOrderItems();
   }

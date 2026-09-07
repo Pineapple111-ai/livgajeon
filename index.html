@@ -311,8 +311,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
       </button>
       <span class="divider"></span>
-      <a href="auth.html" class="header-text-link">로그인</a>
-      <a href="auth.html" class="header-text-link">회원가입</a>
+      <a href="auth.html" class="header-text-link" id="authLink1">로그인</a>
+      <a href="auth.html" class="header-text-link" id="authLink2">회원가입</a>
       <span class="divider"></span>
       <button class="icon-btn" aria-label="장바구니" onclick="location.href='cart.html'">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h2l2 11h10l2-8H7"/><circle cx="10" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/></svg>
@@ -689,6 +689,28 @@ function renderRecGrid(){
   `).join('');
 }
 loadHomeProducts();
+
+// ---------- 헤더 로그인 상태 표시 ----------
+(async ()=>{
+  const { data: { user } } = await window.sb.auth.getUser();
+  const link1 = document.getElementById('authLink1');
+  const link2 = document.getElementById('authLink2');
+  if(user){
+    let displayName = user.email;
+    const { data: profile } = await window.sb.from('profiles').select('name').eq('id', user.id).single();
+    if(profile?.name) displayName = profile.name;
+
+    link1.textContent = `${displayName} 님`;
+    link1.href = 'mypage.html';
+    link2.textContent = '로그아웃';
+    link2.href = '#';
+    link2.addEventListener('click', async (e)=>{
+      e.preventDefault();
+      await window.sb.auth.signOut();
+      location.reload();
+    });
+  }
+})();
 
 // ---------- Filter tabs ----------
 document.getElementById('filterTabs').addEventListener('click', (e)=>{

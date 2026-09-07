@@ -6,6 +6,8 @@
 <title>마이페이지 | 리브가전</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -126,17 +128,20 @@
 </header>
 
 <div class="wrap">
-  <div class="page-head"><h1>마이페이지</h1></div>
+  <div class="page-head" style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>마이페이지</h1>
+    <button id="logoutBtn" style="font-size:13px; color:var(--muted); text-decoration:underline;">로그아웃</button>
+  </div>
 
   <div class="user-card">
     <div>
-      <div class="name">김리브 님</div>
-      <div class="grade">현재 등급 <b>골드</b> · 다음 등급까지 320,000원 남았습니다</div>
+      <div class="name" id="userName">회원 님</div>
+      <div class="grade" id="userGrade">등급 정보를 불러오는 중...</div>
     </div>
     <div class="user-stats">
-      <div><div class="num">6</div><div class="label">주문내역</div></div>
-      <div><div class="num">3</div><div class="label">찜한상품</div></div>
-      <div><div class="num">18,500</div><div class="label">적립금</div></div>
+      <div><div class="num" id="userOrderCount">0</div><div class="label">주문내역</div></div>
+      <div><div class="num" id="userWishCount">0</div><div class="label">찜한상품</div></div>
+      <div><div class="num" id="userPoints">0</div><div class="label">적립금</div></div>
     </div>
   </div>
 
@@ -323,12 +328,10 @@
       <!-- 회원정보 수정 -->
       <div class="tab-panel" id="panel-profile">
         <div class="panel-title">회원정보 수정</div>
-        <form onsubmit="event.preventDefault(); alert('회원정보가 저장되었습니다. (데모)');">
-          <div class="field"><label>아이디</label><input type="text" value="livgajeon_kim" disabled></div>
-          <div class="field"><label>이름</label><input type="text" value="김리브"></div>
-          <div class="field"><label>휴대폰번호</label><input type="tel" value="01000000000"></div>
-          <div class="field"><label>이메일</label><input type="email" value="kim@example.com"></div>
-          <div class="field"><label>새 비밀번호</label><input type="password" placeholder="변경 시에만 입력해주세요"></div>
+        <form id="profileForm">
+          <div class="field"><label>이메일</label><input type="email" id="pf_email" disabled></div>
+          <div class="field"><label>이름</label><input type="text" id="pf_name"></div>
+          <div class="field"><label>휴대폰번호</label><input type="tel" id="pf_phone"></div>
           <button type="submit" class="btn-save">저장하기</button>
         </form>
       </div>
@@ -354,6 +357,68 @@ document.querySelectorAll('.mini-remove').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     btn.closest('.mini-card').remove();
   });
+});
+
+// ---------- 로그인 확인 및 내 정보 불러오기 ----------
+let currentUser = null;
+
+async function initMyPage(){
+  const { data: { user } } = await window.sb.auth.getUser();
+  if(!user){
+    alert('로그인이 필요한 페이지입니다.');
+    location.href = 'auth.html';
+    return;
+  }
+  currentUser = user;
+
+  const { data: profile } = await window.sb
+    .from('profiles')
+    .select('name, phone, grade, points')
+    .eq('id', user.id)
+    .single();
+
+  const displayName = profile?.name || user.email;
+  document.getElementById('userName').textContent = `${displayName} 님`;
+  document.getElementById('userGrade').innerHTML = `현재 등급 <b>${profile?.grade || '일반회원'}</b>`;
+  document.getElementById('userPoints').textContent = (profile?.points || 0).toLocaleString('ko-KR');
+
+  document.getElementById('pf_email').value = user.email;
+  document.getElementById('pf_name').value = profile?.name || '';
+  document.getElementById('pf_phone').value = profile?.phone || '';
+
+  const { count: orderCount } = await window.sb
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+  document.getElementById('userOrderCount').textContent = orderCount || 0;
+
+  const { count: wishCount } = await window.sb
+    .from('wishlists')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+  document.getElementById('userWishCount').textContent = wishCount || 0;
+}
+initMyPage();
+
+document.getElementById('profileForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!currentUser) return;
+  const name = document.getElementById('pf_name').value.trim();
+  const phone = document.getElementById('pf_phone').value.trim();
+
+  const { error } = await window.sb
+    .from('profiles')
+    .update({ name, phone })
+    .eq('id', currentUser.id);
+
+  if(error){ alert('저장에 실패했습니다: ' + error.message); return; }
+  document.getElementById('userName').textContent = `${name} 님`;
+  alert('회원정보가 저장되었습니다.');
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+  await window.sb.auth.signOut();
+  location.href = 'index.html';
 });
 </script>
 </body>

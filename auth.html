@@ -6,6 +6,8 @@
 <title>로그인 / 회원가입 | 리브가전</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -96,22 +98,22 @@
 
     <!-- 로그인 -->
     <div class="auth-panel active" id="panel-login">
-      <form onsubmit="return handleLogin(event)">
+      <form id="loginForm">
         <div class="field">
-          <label>아이디</label>
-          <input type="text" placeholder="아이디를 입력해주세요" required>
+          <label>이메일</label>
+          <input type="email" id="loginEmail" placeholder="가입하신 이메일을 입력해주세요" required>
         </div>
         <div class="field">
           <label>비밀번호</label>
-          <input type="password" placeholder="비밀번호를 입력해주세요" required>
+          <input type="password" id="loginPassword" placeholder="비밀번호를 입력해주세요" required>
         </div>
+        <div class="field-error" id="loginError"></div>
         <div class="check-row">
           <label><input type="checkbox"> 로그인 유지</label>
         </div>
         <button type="submit" class="btn-submit">로그인</button>
       </form>
       <div class="helper-links">
-        <a href="#" onclick="return openHelper('id')">아이디 찾기</a><span>|</span>
         <a href="#" onclick="return openHelper('pw')">비밀번호 찾기</a><span>|</span>
         <a href="#" onclick="switchTab('signup')">회원가입</a>
       </div>
@@ -129,41 +131,37 @@
 
     <!-- 회원가입 -->
     <div class="auth-panel" id="panel-signup">
-      <form onsubmit="return handleSignup(event)">
+      <form id="signupForm">
         <div class="field">
-          <label>아이디</label>
-          <input type="text" placeholder="영문/숫자 4~16자" required>
-          <div class="field-hint">아이디는 가입 후 변경할 수 없습니다.</div>
+          <label>이메일</label>
+          <input type="email" id="signupEmail" placeholder="example@livgajeon.com" required>
+          <div class="field-hint">로그인 시 아이디로 사용됩니다.</div>
         </div>
         <div class="field">
           <label>비밀번호</label>
-          <input type="password" placeholder="영문, 숫자, 특수문자 포함 8자 이상" required>
+          <input type="password" id="signupPassword" placeholder="영문, 숫자 포함 8자 이상" required minlength="8">
         </div>
         <div class="field">
           <label>비밀번호 확인</label>
-          <input type="password" placeholder="비밀번호를 다시 입력해주세요" required>
+          <input type="password" id="signupPasswordConfirm" placeholder="비밀번호를 다시 입력해주세요" required>
         </div>
         <div class="field">
           <label>이름</label>
-          <input type="text" placeholder="이름을 입력해주세요" required>
+          <input type="text" id="signupName" placeholder="이름을 입력해주세요" required>
         </div>
         <div class="field">
           <label>휴대폰번호</label>
-          <input type="tel" placeholder="- 없이 숫자만 입력" required>
-        </div>
-        <div class="field">
-          <label>이메일</label>
-          <input type="email" placeholder="example@livgajeon.com" required>
+          <input type="tel" id="signupPhone" placeholder="- 없이 숫자만 입력" required>
         </div>
 
         <div class="agree-box">
           <label class="agree-all"><input type="checkbox" id="agreeAll"> 전체 동의</label>
           <div class="agree-item">
-            <label><input type="checkbox" class="agree-item-cb"> 이용약관 동의 (필수)</label>
+            <label><input type="checkbox" class="agree-item-cb" data-required="true"> 이용약관 동의 (필수)</label>
             <a href="#">보기</a>
           </div>
           <div class="agree-item">
-            <label><input type="checkbox" class="agree-item-cb"> 개인정보처리방침 동의 (필수)</label>
+            <label><input type="checkbox" class="agree-item-cb" data-required="true"> 개인정보처리방침 동의 (필수)</label>
             <a href="#">보기</a>
           </div>
           <div class="agree-item" style="margin-bottom:0;">
@@ -172,6 +170,7 @@
           </div>
         </div>
 
+        <div class="field-error" id="signupError"></div>
         <button type="submit" class="btn-submit">회원가입</button>
       </form>
       <div class="helper-links">
@@ -183,8 +182,8 @@
   <!-- 가입 완료 -->
   <div class="signup-success" id="signupSuccess">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
-    <h2>회원가입이 완료되었습니다</h2>
-    <p>리브가전의 다양한 혜택을 지금 바로 만나보세요.</p>
+    <h2>인증 이메일을 보내드렸습니다</h2>
+    <p>가입하신 이메일함에서 인증 링크를 눌러 가입을 완료해주세요. (스팸함도 확인해보세요)</p>
     <a href="index.html" class="btn-submit" style="display:block;">홈으로 가기</a>
   </div>
 </div>
@@ -198,12 +197,35 @@ document.querySelectorAll('.auth-tab').forEach(btn=>{
   btn.addEventListener('click', ()=>switchTab(btn.dataset.tab));
 });
 
-function handleLogin(e){
-  e.preventDefault();
-  location.href = 'index.html';
-  return false;
-}
+// 이미 로그인되어 있으면 마이페이지로 이동
+(async ()=>{
+  const { data: { session } } = await window.sb.auth.getSession();
+  if(session){ location.href = 'mypage.html'; }
+})();
 
+// ---------- 로그인 ----------
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const errorBox = document.getElementById('loginError');
+  errorBox.style.display = 'none';
+
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  const { error } = await window.sb.auth.signInWithPassword({ email, password });
+  if(error){
+    errorBox.textContent = error.message.includes('Invalid login credentials')
+      ? '이메일 또는 비밀번호가 올바르지 않습니다.'
+      : (error.message.includes('Email not confirmed')
+        ? '이메일 인증이 필요합니다. 가입하신 이메일함을 확인해주세요.'
+        : '로그인에 실패했습니다: ' + error.message);
+    errorBox.style.display = 'block';
+    return;
+  }
+  location.href = 'index.html';
+});
+
+// ---------- 약관 동의 ----------
 document.getElementById('agreeAll').addEventListener('change', (e)=>{
   document.querySelectorAll('.agree-item-cb').forEach(cb=>cb.checked = e.target.checked);
 });
@@ -214,15 +236,49 @@ document.querySelectorAll('.agree-item-cb').forEach(cb=>{
   });
 });
 
-function handleSignup(e){
+// ---------- 회원가입 ----------
+document.getElementById('signupForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
+  const errorBox = document.getElementById('signupError');
+  errorBox.style.display = 'none';
+
+  const email = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
+  const name = document.getElementById('signupName').value.trim();
+  const phone = document.getElementById('signupPhone').value.trim();
+
+  if(password !== passwordConfirm){
+    errorBox.textContent = '비밀번호가 일치하지 않습니다.';
+    errorBox.style.display = 'block';
+    return;
+  }
+  const requiredAgreed = [...document.querySelectorAll('.agree-item-cb[data-required="true"]')].every(cb=>cb.checked);
+  if(!requiredAgreed){
+    errorBox.textContent = '필수 약관에 동의해주세요.';
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  const { error } = await window.sb.auth.signUp({
+    email, password,
+    options: { data: { name, phone } }
+  });
+
+  if(error){
+    errorBox.textContent = error.message.includes('already registered')
+      ? '이미 가입된 이메일입니다.'
+      : '회원가입에 실패했습니다: ' + error.message;
+    errorBox.style.display = 'block';
+    return;
+  }
+
   document.getElementById('authForms').style.display = 'none';
   document.getElementById('signupSuccess').style.display = 'block';
-  return false;
-}
+});
 
 function openHelper(type){
-  alert(type==='id' ? '아이디 찾기 화면입니다. (데모)' : '비밀번호 찾기 화면입니다. (데모)');
+  alert('비밀번호 찾기 기능은 준비 중입니다.');
   return false;
 }
 </script>

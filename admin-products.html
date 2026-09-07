@@ -6,6 +6,8 @@
 <title>상품관리 | 리브가전 관리자</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -202,25 +204,18 @@
     </div>
 
     <div class="filter-bar">
-      <input type="text" placeholder="상품명 또는 모델명 검색">
-      <select>
-        <option>브랜드 전체</option>
-        <option>삼성전자</option>
-        <option>LG전자</option>
+      <input type="text" id="searchInput" placeholder="상품명 또는 모델명 검색">
+      <select id="brandFilter">
+        <option value="">브랜드 전체</option>
       </select>
-      <select>
-        <option>카테고리 전체</option>
-        <option>냉장고</option>
-        <option>세탁/건조</option>
-        <option>TV</option>
-        <option>주방가전</option>
-        <option>생활가전</option>
+      <select id="categoryFilter">
+        <option value="">카테고리 전체</option>
       </select>
       <div class="status-tabs" id="statusTabs">
         <button class="status-tab active" data-s="all">전체</button>
-        <button class="status-tab" data-s="onsale">판매중</button>
-        <button class="status-tab" data-s="soldout">품절</button>
-        <button class="status-tab" data-s="stopped">판매중지</button>
+        <button class="status-tab" data-s="판매중">판매중</button>
+        <button class="status-tab" data-s="품절">품절</button>
+        <button class="status-tab" data-s="판매중지">판매중지</button>
         <button class="status-tab" data-s="discount">할인상품</button>
       </div>
     </div>
@@ -251,26 +246,25 @@
       <h3>기본정보</h3>
       <div class="form-row">
         <div class="form-field"><label>상품명</label><input type="text" id="f_name" placeholder="예) BESPOKE 냉장고 4도어 875L"></div>
-        <div class="form-field"><label>모델명</label><input type="text" placeholder="예) RF85XXXX"></div>
+        <div class="form-field"><label>모델명</label><input type="text" id="f_model" placeholder="예) RF85XXXX"></div>
       </div>
       <div class="form-row">
         <div class="form-field">
           <label>브랜드</label>
-          <select><option>삼성전자</option><option>LG전자</option></select>
+          <select id="f_brand"></select>
         </div>
         <div class="form-field">
           <label>카테고리</label>
-          <select>
-            <option>냉장고</option><option>김치냉장고</option><option>세탁/건조</option><option>TV</option>
-            <option>식기세척기</option><option>주방가전</option><option>에어컨</option><option>공기청정기</option><option>생활가전</option>
-          </select>
+          <select id="f_category"></select>
         </div>
       </div>
       <div class="form-row">
-        <div class="form-field"><label>상품코드</label><input type="text" placeholder="자동 생성 (수정 가능)" value="LV-FR-0013"></div>
+        <div class="form-field"><label>상품코드</label><input type="text" id="f_code" placeholder="예) LV-FR-0013"></div>
         <div class="form-field">
           <label>배송방법</label>
-          <select><option>일반택배</option><option>화물배송</option><option>설치배송</option><option>직접배송</option></select>
+          <select id="f_ship">
+            <option>일반택배</option><option>화물배송</option><option>설치배송</option><option>직접배송</option>
+          </select>
         </div>
       </div>
     </div>
@@ -287,6 +281,7 @@
 
     <div class="form-section">
       <h3>상품 이미지</h3>
+      <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">이미지 업로드 기능은 준비 중입니다. 지금은 카테고리 아이콘으로 대체 표시됩니다.</p>
       <div class="image-slots">
         <div class="image-slot filled">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M21 15l-5-5-4 4-3-3-6 6"/></svg>
@@ -308,54 +303,47 @@
       </div>
     </div>
 
-    <div class="form-section">
+    <div class="form-section" id="optionSection">
       <h3>옵션 (색상/용량별 재고)</h3>
+      <p id="optionEditNotice" style="display:none; font-size:12px; color:var(--muted); margin-bottom:10px;">옵션 구성과 개별 재고 수량은 <a href="admin-inventory.html" style="color:var(--main); text-decoration:underline;">재고관리</a> 페이지에서 조정해주세요. 여기서는 최초 등록 시에만 설정합니다.</p>
       <div id="optionRows">
         <div class="dyn-row">
           <input type="text" placeholder="옵션명 (예: 색상)" value="색상">
           <input type="text" placeholder="옵션값 (예: 화이트)" value="화이트">
-          <input type="text" placeholder="재고" inputmode="numeric" value="24">
-          <button type="button" class="dyn-remove">✕</button>
-        </div>
-        <div class="dyn-row">
-          <input type="text" placeholder="옵션명 (예: 용량)" value="용량">
-          <input type="text" placeholder="옵션값 (예: 875L)" value="875L">
-          <input type="text" placeholder="재고" inputmode="numeric" value="24">
+          <input type="text" placeholder="재고" inputmode="numeric" value="10">
           <button type="button" class="dyn-remove">✕</button>
         </div>
       </div>
       <button type="button" class="dyn-add" id="addOptionRow">+ 옵션 추가</button>
     </div>
 
-    <div class="form-section">
+    <div class="form-section" id="specSection">
       <h3>상세 스펙</h3>
       <div id="specRows">
-        <div class="spec-row"><input type="text" placeholder="항목 (예: 용량)" value="용량"><input type="text" placeholder="내용" value="875L"><button type="button" class="dyn-remove">✕</button></div>
-        <div class="spec-row"><input type="text" placeholder="항목 (예: 에너지효율)" value="에너지효율"><input type="text" placeholder="내용" value="1등급"><button type="button" class="dyn-remove">✕</button></div>
+        <div class="spec-row"><input type="text" placeholder="항목 (예: 용량)"><input type="text" placeholder="내용"><button type="button" class="dyn-remove">✕</button></div>
       </div>
       <button type="button" class="dyn-add" id="addSpecRow">+ 스펙 항목 추가</button>
     </div>
 
     <div class="form-section">
-      <h3>재고 / 판매상태</h3>
+      <h3>안전재고 / 판매상태</h3>
       <div class="form-row">
-        <div class="form-field"><label>현재 재고 (총합)</label><input type="text" id="f_stock" inputmode="numeric" value="48"></div>
-        <div class="form-field"><label>안전재고</label><input type="text" value="5" inputmode="numeric"></div>
+        <div class="form-field" id="safetyStockField"><label>안전재고 (신규 등록 시에만 적용)</label><input type="text" id="f_safety" value="5" inputmode="numeric"></div>
       </div>
       <label style="display:block; font-size:12.5px; font-weight:600; color:var(--sub); margin-bottom:8px;">판매상태</label>
       <div class="status-pills" id="salePills">
-        <button type="button" class="status-pill selected" data-v="onsale">판매중</button>
-        <button type="button" class="status-pill" data-v="soldout">품절</button>
-        <button type="button" class="status-pill" data-v="temp">일시품절</button>
-        <button type="button" class="status-pill" data-v="stopped">판매중지</button>
-        <button type="button" class="status-pill" data-v="reserve">예약판매</button>
+        <button type="button" class="status-pill selected" data-v="판매중">판매중</button>
+        <button type="button" class="status-pill" data-v="품절">품절</button>
+        <button type="button" class="status-pill" data-v="일시품절">일시품절</button>
+        <button type="button" class="status-pill" data-v="판매중지">판매중지</button>
+        <button type="button" class="status-pill" data-v="예약판매">예약판매</button>
       </div>
     </div>
 
     <div class="form-section">
       <h3>상품 설명</h3>
       <div class="form-field full">
-        <textarea rows="4" placeholder="상품 상세 설명을 입력해주세요"></textarea>
+        <textarea id="f_description" rows="4" placeholder="상품 상세 설명을 입력해주세요"></textarea>
       </div>
     </div>
   </div>
@@ -366,33 +354,96 @@
 </div>
 
 <script>
-const fridgeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`;
-const laundryIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`;
-const tvIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`;
-const kitchenIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`;
+const CATEGORY_ICON_MAP = {
+  '냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`,
+  '김치냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="18" height="16" rx="1.5"/></svg>`,
+  '세탁/건조': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`,
+  'TV': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`,
+  '주방가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`,
+  '생활가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+};
+const DEFAULT_ICON = CATEGORY_ICON_MAP['냉장고'];
 
-let products = [
-  {id:1, name:'BESPOKE 냉장고 4도어 875L', icon:fridgeIcon, cat:'냉장고', list:3299000, price:1814000, rate:45, stock:48, status:'onsale', date:'2026.06.02', sold:32},
-  {id:2, name:'오브제컬렉션 세탁건조기 21kg', icon:laundryIcon, cat:'세탁/건조', list:2890000, price:1908000, rate:34, stock:3, status:'onsale', date:'2026.06.10', sold:21},
-  {id:3, name:'Neo QLED 4K TV 65형', icon:tvIcon, cat:'TV', list:3190000, price:1975000, rate:38, stock:14, status:'onsale', date:'2026.05.28', sold:27},
-  {id:4, name:'퓨리케어 공기청정기 360°', icon:kitchenIcon, cat:'생활가전', list:890000, price:623000, rate:30, stock:0, status:'soldout', date:'2026.05.15', sold:18},
-  {id:5, name:'트롬 건조기 히트펌프 21kg', icon:laundryIcon, cat:'세탁/건조', list:1590000, price:1113000, rate:30, stock:2, status:'onsale', date:'2026.04.20', sold:9},
-  {id:6, name:'비스포크 광파오븐', icon:kitchenIcon, cat:'주방가전', list:590000, price:413000, rate:30, stock:31, status:'stopped', date:'2026.03.11', sold:14},
-];
+function won(n){ return (n||0).toLocaleString('ko-KR')+'원'; }
+const statusLabelCls = {'판매중':'badge-green', '품절':'badge-red', '일시품절':'badge-gray', '판매중지':'badge-gray', '예약판매':'badge-gray'};
 
-function won(n){ return n.toLocaleString('ko-KR')+'원'; }
-const statusLabel = {onsale:['판매중','badge-green'], soldout:['품절','badge-red'], stopped:['판매중지','badge-gray'], temp:['일시품절','badge-gray'], reserve:['예약판매','badge-gray']};
+let products = [];
+let brands = [];
+let categories = [];
+let editingProductId = null;
 
-function renderTable(filter='all'){
-  const tbody = document.getElementById('productTbody');
+async function loadLookups(){
+  const { data: brandRows } = await window.sb.from('brands').select('id, name').order('name');
+  const { data: catRows } = await window.sb.from('categories').select('id, name, parent_id').order('sort_order');
+  brands = brandRows || [];
+  categories = catRows || [];
+
+  document.getElementById('brandFilter').innerHTML = '<option value="">브랜드 전체</option>' + brands.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  document.getElementById('categoryFilter').innerHTML = '<option value="">카테고리 전체</option>' + categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('f_brand').innerHTML = brands.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  document.getElementById('f_category').innerHTML = categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+async function loadProducts(){
+  const { data: rows, error } = await window.sb
+    .from('products')
+    .select(`
+      id, name, model_no, product_code, list_price, sale_price, discount_rate, status, ship_method, description, created_at,
+      brands ( id, name ),
+      categories ( id, name ),
+      product_options ( id, inventories ( current_stock ) )
+    `)
+    .order('created_at', { ascending:false });
+
+  if(error){ console.error(error); return; }
+
+  const { data: itemRows } = await window.sb.from('order_items').select('product_id, qty').limit(2000);
+  const soldMap = {};
+  (itemRows||[]).forEach(r=>{ soldMap[r.product_id] = (soldMap[r.product_id]||0) + r.qty; });
+
+  products = (rows||[]).map(p=>{
+    const stock = (p.product_options||[]).reduce((s,o)=> s + (o.inventories?.[0]?.current_stock || 0), 0);
+    return {
+      id: p.id,
+      name: p.name,
+      modelNo: p.model_no,
+      code: p.product_code,
+      brandId: p.brands?.id || '',
+      brandName: p.brands?.name || '',
+      catId: p.categories?.id || '',
+      catName: p.categories?.name || '',
+      icon: CATEGORY_ICON_MAP[p.categories?.name] || DEFAULT_ICON,
+      list: p.list_price,
+      price: p.sale_price,
+      rate: p.discount_rate,
+      status: p.status,
+      shipMethod: p.ship_method,
+      description: p.description,
+      stock,
+      date: p.created_at ? p.created_at.slice(0,10).replace(/-/g,'.') : '',
+      sold: soldMap[p.id] || 0,
+    };
+  });
+
+  renderTable();
+}
+
+function renderTable(){
+  const filter = document.querySelector('.status-tab.active')?.dataset.s || 'all';
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const brandId = document.getElementById('brandFilter').value;
+  const catId = document.getElementById('categoryFilter').value;
+
   let list = products;
-  if(filter==='onsale') list = list.filter(p=>p.status==='onsale');
-  if(filter==='soldout') list = list.filter(p=>p.status==='soldout');
-  if(filter==='stopped') list = list.filter(p=>p.status==='stopped');
-  if(filter==='discount') list = list.filter(p=>p.rate>=30);
+  if(filter==='discount') list = list.filter(p=>p.rate>0);
+  else if(filter!=='all') list = list.filter(p=>p.status===filter);
+  if(brandId) list = list.filter(p=>p.brandId===brandId);
+  if(catId) list = list.filter(p=>p.catId===catId);
+  if(search) list = list.filter(p=> p.name.toLowerCase().includes(search) || (p.modelNo||'').toLowerCase().includes(search));
 
-  tbody.innerHTML = list.map(p=>{
-    const [label, cls] = statusLabel[p.status];
+  const tbody = document.getElementById('productTbody');
+  tbody.innerHTML = list.length ? list.map(p=>{
+    const cls = statusLabelCls[p.status] || 'badge-gray';
     return `
     <tr>
       <td>
@@ -400,56 +451,110 @@ function renderTable(filter='all'){
           <div class="p-thumb">${p.icon}</div>
           <div>
             <div class="p-name">${p.name}</div>
-            <div class="p-code">ID ${p.id}</div>
+            <div class="p-code">${p.code || ''}</div>
           </div>
         </div>
       </td>
-      <td>${p.cat}</td>
+      <td>${p.catName}</td>
       <td><div class="price-final">${won(p.price)}</div><div class="price-list">${won(p.list)}</div></td>
       <td class="rate-tag">${p.rate}%</td>
       <td class="${p.stock<=5 ? 'stock-low':''}">${p.stock}개</td>
-      <td><span class="badge ${cls}">${label}</span></td>
+      <td><span class="badge ${cls}">${p.status}</span></td>
       <td>${p.date}</td>
       <td>${p.sold}건</td>
       <td>
         <div class="row-actions">
-          <button onclick="openDrawer(${p.id})">수정</button>
-          <button class="danger" onclick="deleteProduct(${p.id})">삭제</button>
+          <button onclick="openDrawer('${p.id}')">수정</button>
+          <button class="danger" onclick="deleteProduct('${p.id}')">삭제</button>
         </div>
       </td>
     </tr>
   `;
-  }).join('');
+  }).join('') : '<tr><td colspan="9" style="color:var(--muted); text-align:center; padding:30px;">등록된 상품이 없습니다.</td></tr>';
 }
-renderTable();
 
 document.getElementById('statusTabs').addEventListener('click', (e)=>{
   const btn = e.target.closest('.status-tab');
   if(!btn) return;
   document.querySelectorAll('.status-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderTable(btn.dataset.s);
+  renderTable();
 });
+document.getElementById('searchInput').addEventListener('input', renderTable);
+document.getElementById('brandFilter').addEventListener('change', renderTable);
+document.getElementById('categoryFilter').addEventListener('change', renderTable);
 
-function deleteProduct(id){
+async function deleteProduct(id){
   if(!confirm('선택한 상품을 삭제하시겠습니까?')) return;
-  products = products.filter(p=>p.id!==id);
-  renderTable(document.querySelector('.status-tab.active').dataset.s);
+  const { error } = await window.sb.from('products').delete().eq('id', id);
+  if(error){
+    if(error.code === '23503'){
+      alert('이미 주문/장바구니에 담긴 상품은 삭제할 수 없습니다. "판매중지" 상태로 변경해주세요.');
+    } else {
+      alert('삭제에 실패했습니다: ' + error.message);
+    }
+    return;
+  }
+  await loadProducts();
 }
 
 // ---------- Drawer ----------
 const drawer = document.getElementById('productDrawer');
 const backdrop = document.getElementById('drawerBackdrop');
+
+function resetOptionRows(){
+  document.getElementById('optionRows').innerHTML = `
+    <div class="dyn-row">
+      <input type="text" placeholder="옵션명 (예: 색상)">
+      <input type="text" placeholder="옵션값 (예: 화이트)">
+      <input type="text" placeholder="재고" inputmode="numeric" value="10">
+      <button type="button" class="dyn-remove">✕</button>
+    </div>`;
+}
+function resetSpecRows(){
+  document.getElementById('specRows').innerHTML = `
+    <div class="spec-row"><input type="text" placeholder="항목 (예: 용량)"><input type="text" placeholder="내용"><button type="button" class="dyn-remove">✕</button></div>`;
+}
+
 function openDrawer(id){
+  editingProductId = id || null;
   document.getElementById('drawerTitle').textContent = id ? '상품 수정' : '상품 등록';
+
+  const isEdit = !!id;
+  document.getElementById('optionEditNotice').style.display = isEdit ? 'block' : 'none';
+  document.getElementById('optionSection').style.display = isEdit ? 'none' : 'block';
+  document.getElementById('specSection').style.display = isEdit ? 'none' : 'block';
+  document.getElementById('safetyStockField').style.display = isEdit ? 'none' : 'block';
+
   if(id){
     const p = products.find(x=>x.id===id);
     document.getElementById('f_name').value = p.name;
+    document.getElementById('f_model').value = p.modelNo || '';
+    document.getElementById('f_brand').value = p.brandId;
+    document.getElementById('f_category').value = p.catId;
+    document.getElementById('f_code').value = p.code || '';
+    document.getElementById('f_ship').value = p.shipMethod || '일반택배';
     document.getElementById('f_list').value = p.list;
     document.getElementById('f_sale').value = p.price;
-    document.getElementById('f_stock').value = p.stock;
+    document.getElementById('f_description').value = p.description || '';
     recalcFromPrices();
+    document.querySelectorAll('#salePills .status-pill').forEach(b=>b.classList.toggle('selected', b.dataset.v===p.status));
+  } else {
+    document.getElementById('f_name').value = '';
+    document.getElementById('f_model').value = '';
+    document.getElementById('f_code').value = '';
+    document.getElementById('f_ship').value = '일반택배';
+    document.getElementById('f_list').value = '';
+    document.getElementById('f_sale').value = '';
+    document.getElementById('f_rate').value = '';
+    document.getElementById('f_safety').value = '5';
+    document.getElementById('f_description').value = '';
+    document.getElementById('calcResult').textContent = '정상가/판매가를 입력해주세요';
+    resetOptionRows();
+    resetSpecRows();
+    document.querySelectorAll('#salePills .status-pill').forEach(b=>b.classList.toggle('selected', b.dataset.v==='판매중'));
   }
+
   drawer.classList.add('open');
   backdrop.classList.add('open');
 }
@@ -462,9 +567,69 @@ document.getElementById('drawerCloseBtn').addEventListener('click', closeDrawer)
 document.getElementById('drawerCancelBtn').addEventListener('click', closeDrawer);
 backdrop.addEventListener('click', closeDrawer);
 
-document.getElementById('drawerSaveBtn').addEventListener('click', ()=>{
-  alert('상품 정보가 저장되었습니다. (데모: 실제 서비스에서는 DB에 반영되고 목록이 갱신됩니다)');
+document.getElementById('drawerSaveBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('f_name').value.trim();
+  const listPrice = num(document.getElementById('f_list').value);
+  const salePrice = num(document.getElementById('f_sale').value);
+  if(!name || !listPrice || !salePrice){
+    alert('상품명, 정상가, 판매가는 필수입니다.');
+    return;
+  }
+
+  const payload = {
+    name,
+    model_no: document.getElementById('f_model').value.trim(),
+    brand_id: document.getElementById('f_brand').value,
+    category_id: document.getElementById('f_category').value,
+    product_code: document.getElementById('f_code').value.trim(),
+    ship_method: document.getElementById('f_ship').value,
+    list_price: listPrice,
+    sale_price: salePrice,
+    status: document.querySelector('#salePills .status-pill.selected')?.dataset.v || '판매중',
+    description: document.getElementById('f_description').value.trim(),
+  };
+
+  const saveBtn = document.getElementById('drawerSaveBtn');
+  saveBtn.disabled = true;
+
+  if(editingProductId){
+    const { error } = await window.sb.from('products').update(payload).eq('id', editingProductId);
+    if(error){ alert('저장에 실패했습니다: ' + error.message); saveBtn.disabled = false; return; }
+  } else {
+    const { data: inserted, error } = await window.sb.from('products').insert(payload).select('id').single();
+    if(error){ alert('저장에 실패했습니다: ' + error.message); saveBtn.disabled = false; return; }
+    const productId = inserted.id;
+
+    const safetyStock = num(document.getElementById('f_safety').value) || 5;
+    const optionRows = [...document.querySelectorAll('#optionRows .dyn-row')].map(row=>{
+      const inputs = row.querySelectorAll('input');
+      return { name: inputs[0].value.trim(), value: inputs[1].value.trim(), stock: num(inputs[2].value) };
+    }).filter(o=>o.name && o.value);
+
+    for(const opt of optionRows){
+      const { data: optRow, error: optErr } = await window.sb
+        .from('product_options')
+        .insert({ product_id: productId, option_name: opt.name, option_value: opt.value })
+        .select('id').single();
+      if(!optErr && optRow){
+        await window.sb.from('inventories').insert({ product_option_id: optRow.id, current_stock: opt.stock, safety_stock: safetyStock });
+      }
+    }
+
+    const specRows = [...document.querySelectorAll('#specRows .spec-row')].map(row=>{
+      const inputs = row.querySelectorAll('input');
+      return { label: inputs[0].value.trim(), value: inputs[1].value.trim() };
+    }).filter(s=>s.label && s.value);
+
+    if(specRows.length){
+      await window.sb.from('product_specs').insert(specRows.map(s=>({ product_id: productId, label: s.label, value: s.value })));
+    }
+  }
+
+  saveBtn.disabled = false;
   closeDrawer();
+  await loadProducts();
+  alert('상품 정보가 저장되었습니다.');
 });
 
 // ---------- Price auto-calc ----------
@@ -505,7 +670,7 @@ document.getElementById('salePills').addEventListener('click', (e)=>{
   btn.classList.add('selected');
 });
 
-// ---------- Dynamic option / spec rows ----------
+// ---------- Dynamic option / spec rows (등록 시에만 노출) ----------
 document.getElementById('addOptionRow').addEventListener('click', ()=>{
   const row = document.createElement('div');
   row.className = 'dyn-row';
@@ -532,6 +697,15 @@ document.getElementById('productDrawer').addEventListener('click', (e)=>{
     e.target.closest('.dyn-row, .spec-row').remove();
   }
 });
+
+// ---------- Init ----------
+async function initPage(){
+  const admin = await window.requireAdmin();
+  if(!admin) return;
+  await loadLookups();
+  await loadProducts();
+}
+initPage();
 </script>
 </body>
 </html>

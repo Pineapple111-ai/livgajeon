@@ -6,6 +6,8 @@
 <title>관리자 대시보드 | 리브가전</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -200,7 +202,7 @@
     <div class="topbar">
       <h1>대시보드</h1>
       <div class="admin-info">
-        <span class="admin-name">최고관리자 님</span>
+        <span class="admin-name" id="adminName">관리자 님</span>
         <div class="notif-wrap">
           <button class="bell-btn" id="bellBtn" aria-label="알림">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 004 0"/></svg>
@@ -222,42 +224,42 @@
     <div class="stat-grid">
       <div class="stat-card">
         <div class="label">오늘 매출</div>
-        <div class="value">14,820,000<small>원</small></div>
-        <div class="delta up">▲ 전일 대비 12.4%</div>
+        <div class="value" id="statTodaySales">0원</div>
+        <div class="delta">결제완료 기준</div>
       </div>
       <div class="stat-card">
         <div class="label">이번 달 매출</div>
-        <div class="value">312,450,000<small>원</small></div>
-        <div class="delta up">▲ 전월 대비 8.1%</div>
+        <div class="value" id="statMonthSales">0원</div>
+        <div class="delta">결제완료 기준</div>
       </div>
       <div class="stat-card">
         <div class="label">오늘 주문</div>
-        <div class="value">18<small>건</small></div>
-        <div class="delta">신규 주문 5건 포함</div>
+        <div class="value" id="statTodayOrders">0<small>건</small></div>
+        <div class="delta">&nbsp;</div>
       </div>
       <div class="stat-card">
         <div class="label">신규 회원</div>
-        <div class="value">8<small>명</small></div>
-        <div class="delta up">▲ 전일 대비 3명</div>
+        <div class="value" id="statNewMembers">0<small>명</small></div>
+        <div class="delta">오늘 가입</div>
       </div>
       <div class="stat-card">
         <div class="label">배송 대기</div>
-        <div class="value">6<small>건</small></div>
-        <div class="delta">평균 처리 1.2일</div>
+        <div class="value" id="statShipWait">0<small>건</small></div>
+        <div class="delta">&nbsp;</div>
       </div>
       <div class="stat-card">
         <div class="label">배송 중</div>
-        <div class="value">11<small>건</small></div>
-        <div class="delta">설치배송 4건 포함</div>
+        <div class="value" id="statShipping">0<small>건</small></div>
+        <div class="delta">&nbsp;</div>
       </div>
       <div class="stat-card">
-        <div class="label">신규 문의</div>
-        <div class="value">3<small>건</small></div>
-        <div class="delta down">미답변 2건</div>
+        <div class="label">답변대기 문의</div>
+        <div class="value" id="statPendingInquiry">0<small>건</small></div>
+        <div class="delta">&nbsp;</div>
       </div>
       <div class="stat-card">
         <div class="label">재고 부족 상품</div>
-        <div class="value">2<small>개</small></div>
+        <div class="value" id="statLowStock">0<small>개</small></div>
         <div class="delta down">안전재고 이하</div>
       </div>
     </div>
@@ -266,16 +268,16 @@
     <div class="section-card">
       <div class="section-head-row"><h2>주문 현황</h2></div>
       <div class="status-grid">
-        <div class="status-cell"><div class="num">4</div><div class="label">결제대기</div></div>
-        <div class="status-cell"><div class="num">9</div><div class="label">결제완료</div></div>
-        <div class="status-cell"><div class="num">7</div><div class="label">상품준비중</div></div>
-        <div class="status-cell"><div class="num">5</div><div class="label">배송준비</div></div>
-        <div class="status-cell"><div class="num">11</div><div class="label">배송중</div></div>
-        <div class="status-cell"><div class="num">23</div><div class="label">배송완료</div></div>
-        <div class="status-cell"><div class="num">142</div><div class="label">구매확정</div></div>
-        <div class="status-cell warn"><div class="num">2</div><div class="label">취소</div></div>
-        <div class="status-cell warn"><div class="num">1</div><div class="label">반품</div></div>
-        <div class="status-cell warn"><div class="num">1</div><div class="label">교환</div></div>
+        <div class="status-cell" data-status="결제대기"><div class="num">0</div><div class="label">결제대기</div></div>
+        <div class="status-cell" data-status="결제완료"><div class="num">0</div><div class="label">결제완료</div></div>
+        <div class="status-cell" data-status="상품준비중"><div class="num">0</div><div class="label">상품준비중</div></div>
+        <div class="status-cell" data-status="배송준비"><div class="num">0</div><div class="label">배송준비</div></div>
+        <div class="status-cell" data-status="배송중"><div class="num">0</div><div class="label">배송중</div></div>
+        <div class="status-cell" data-status="배송완료"><div class="num">0</div><div class="label">배송완료</div></div>
+        <div class="status-cell" data-status="구매확정"><div class="num">0</div><div class="label">구매확정</div></div>
+        <div class="status-cell warn" data-status="취소"><div class="num">0</div><div class="label">취소</div></div>
+        <div class="status-cell warn" data-status="반품"><div class="num">0</div><div class="label">반품</div></div>
+        <div class="status-cell warn" data-status="교환"><div class="num">0</div><div class="label">교환</div></div>
       </div>
     </div>
 
@@ -300,35 +302,16 @@
         <div class="section-head-row"><h2>최근 주문</h2></div>
         <table class="simple-table">
           <tr><th>주문번호</th><th>주문자</th><th>상품</th><th>금액</th><th>상태</th></tr>
-          <tr><td>LV202609070008</td><td>김**</td><td>BESPOKE 냉장고 외 1건</td><td>1,814,000원</td><td><span class="badge badge-blue">결제완료</span></td></tr>
-          <tr><td>LV202609070007</td><td>이**</td><td>Neo QLED TV 65형</td><td>1,975,000원</td><td><span class="badge badge-red">결제대기</span></td></tr>
-          <tr><td>LV202609070006</td><td>박**</td><td>퓨리케어 공기청정기</td><td>623,000원</td><td><span class="badge badge-green">배송중</span></td></tr>
-          <tr><td>LV202609070005</td><td>최**</td><td>오브제 세탁건조기</td><td>1,908,000원</td><td><span class="badge badge-blue">상품준비중</span></td></tr>
-          <tr><td>LV202609070004</td><td>정**</td><td>디오스 식기세척기</td><td>903,000원</td><td><span class="badge badge-green">배송완료</span></td></tr>
+          <tbody id="recentOrdersBody">
+            <tr><td colspan="5" style="color:var(--muted);">불러오는 중...</td></tr>
+          </tbody>
         </table>
       </div>
 
       <div class="section-card">
         <div class="section-head-row"><h2>인기 판매 상품</h2></div>
-        <div class="rank-item">
-          <div style="display:flex; align-items:center;"><span class="rank-num top">1</span><div><div class="rname">BESPOKE 냉장고 4도어</div><div class="rsub">삼성전자 · 45% 할인</div></div></div>
-          <div style="font-weight:700; font-size:13px;">32건</div>
-        </div>
-        <div class="rank-item">
-          <div style="display:flex; align-items:center;"><span class="rank-num">2</span><div><div class="rname">Neo QLED 4K TV 65형</div><div class="rsub">삼성전자 · 38% 할인</div></div></div>
-          <div style="font-weight:700; font-size:13px;">27건</div>
-        </div>
-        <div class="rank-item">
-          <div style="display:flex; align-items:center;"><span class="rank-num">3</span><div><div class="rname">오브제컬렉션 세탁건조기</div><div class="rsub">LG전자 · 34% 할인</div></div></div>
-          <div style="font-weight:700; font-size:13px;">21건</div>
-        </div>
-        <div class="rank-item">
-          <div style="display:flex; align-items:center;"><span class="rank-num">4</span><div><div class="rname">퓨리케어 공기청정기 360°</div><div class="rsub">LG전자 · 30% 할인</div></div></div>
-          <div style="font-weight:700; font-size:13px;">18건</div>
-        </div>
-        <div class="rank-item">
-          <div style="display:flex; align-items:center;"><span class="rank-num">5</span><div><div class="rname">비스포크 광파오븐</div><div class="rsub">삼성전자 · 30% 할인</div></div></div>
-          <div style="font-weight:700; font-size:13px;">14건</div>
+        <div id="bestSellerList">
+          <p style="color:var(--muted); font-size:13px;">불러오는 중...</p>
         </div>
       </div>
     </div>
@@ -336,6 +319,13 @@
 </div>
 
 <script>
+function won(n){ return (n||0).toLocaleString('ko-KR')+'원'; }
+const statusBadgeMap = {
+  '결제대기':'badge-red', '결제완료':'badge-blue', '상품준비중':'badge-blue', '배송준비':'badge-blue',
+  '배송중':'badge-blue', '배송완료':'badge-green', '구매확정':'badge-green',
+  '취소':'badge-gray', '반품':'badge-gray', '교환':'badge-gray',
+};
+
 document.getElementById('bellBtn').addEventListener('click', ()=>{
   document.getElementById('notifPanel').classList.toggle('open');
 });
@@ -345,41 +335,179 @@ document.addEventListener('click', (e)=>{
 
 document.querySelectorAll('.status-cell').forEach(cell=>{
   cell.addEventListener('click', ()=>{
-    alert(`'${cell.querySelector('.label').textContent}' 주문 목록으로 이동합니다. (데모: 실제 관리자 페이지에서는 주문관리 화면으로 이동합니다)`);
+    location.href = 'admin-orders.html';
   });
 });
 
-const chartData = {
-  daily: {labels:['09/01','09/02','09/03','09/04','09/05','09/06','09/07'], values:[8200000,9600000,7400000,11200000,10500000,13100000,14820000], unit:'원'},
-  weekly: {labels:['1주차','2주차','3주차','4주차','5주차'], values:[54000000,61000000,58000000,72000000,66500000], unit:'원'},
-  monthly: {labels:['4월','5월','6월','7월','8월','9월'], values:[240000000,265000000,251000000,289000000,301000000,312450000], unit:'원'},
-};
+function todayStart(){
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+}
+function monthStart(){
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), 1);
+}
 
-function renderChart(period){
-  const data = chartData[period];
-  const max = Math.max(...data.values);
-  const chart = document.getElementById('barChart');
-  chart.innerHTML = data.values.map((v,i)=>{
+async function loadStats(orders){
+  const tStart = todayStart();
+  const mStart = monthStart();
+  const notCanceled = o => o.status !== '취소';
+
+  const todayOrders = orders.filter(o => new Date(o.created_at) >= tStart);
+  const monthOrders = orders.filter(o => new Date(o.created_at) >= mStart);
+
+  document.getElementById('statTodaySales').textContent = won(todayOrders.filter(notCanceled).reduce((s,o)=>s+o.final_amount,0));
+  document.getElementById('statMonthSales').textContent = won(monthOrders.filter(notCanceled).reduce((s,o)=>s+o.final_amount,0));
+  document.getElementById('statTodayOrders').innerHTML = `${todayOrders.length}<small>건</small>`;
+  document.getElementById('statShipWait').innerHTML = `${orders.filter(o=>o.status==='배송준비').length}<small>건</small>`;
+  document.getElementById('statShipping').innerHTML = `${orders.filter(o=>o.status==='배송중').length}<small>건</small>`;
+
+  const { count: newMemberCount } = await window.sb
+    .from('profiles').select('*', { count:'exact', head:true }).gte('created_at', tStart.toISOString());
+  document.getElementById('statNewMembers').innerHTML = `${newMemberCount||0}<small>명</small>`;
+
+  const { count: pendingInquiry } = await window.sb
+    .from('customer_inquiries').select('*', { count:'exact', head:true }).eq('status','답변대기');
+  document.getElementById('statPendingInquiry').innerHTML = `${pendingInquiry||0}<small>건</small>`;
+
+  const { data: invRows } = await window.sb.from('inventories').select('current_stock, safety_stock');
+  const lowStock = (invRows||[]).filter(i=>i.current_stock <= i.safety_stock).length;
+  document.getElementById('statLowStock').innerHTML = `${lowStock}<small>개</small>`;
+}
+
+function loadOrderStatusGrid(orders){
+  document.querySelectorAll('.status-cell').forEach(cell=>{
+    const status = cell.dataset.status;
+    cell.querySelector('.num').textContent = orders.filter(o=>o.status===status).length;
+  });
+}
+
+function renderChart(period, orders){
+  const notCanceled = o => o.status !== '취소';
+  let labels = [], values = [];
+
+  if(period === 'daily'){
+    for(let i=6;i>=0;i--){
+      const d = new Date(); d.setDate(d.getDate()-i);
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate()+1);
+      const sum = orders.filter(notCanceled).filter(o=>{
+        const c = new Date(o.created_at); return c>=dayStart && c<dayEnd;
+      }).reduce((s,o)=>s+o.final_amount,0);
+      labels.push(`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`);
+      values.push(sum);
+    }
+  } else if(period === 'weekly'){
+    for(let i=4;i>=0;i--){
+      const end = new Date(); end.setDate(end.getDate()-i*7);
+      const start = new Date(end); start.setDate(start.getDate()-7);
+      const sum = orders.filter(notCanceled).filter(o=>{
+        const c = new Date(o.created_at); return c>=start && c<end;
+      }).reduce((s,o)=>s+o.final_amount,0);
+      labels.push(`${5-i}주전`);
+      values.push(sum);
+    }
+  } else {
+    for(let i=5;i>=0;i--){
+      const d = new Date(); d.setMonth(d.getMonth()-i);
+      const start = new Date(d.getFullYear(), d.getMonth(), 1);
+      const end = new Date(d.getFullYear(), d.getMonth()+1, 1);
+      const sum = orders.filter(notCanceled).filter(o=>{
+        const c = new Date(o.created_at); return c>=start && c<end;
+      }).reduce((s,o)=>s+o.final_amount,0);
+      labels.push(`${d.getMonth()+1}월`);
+      values.push(sum);
+    }
+  }
+
+  const max = Math.max(...values, 1);
+  document.getElementById('barChart').innerHTML = values.map((v,i)=>{
     const h = Math.round((v/max)*160);
     const displayVal = v>=100000000 ? (v/100000000).toFixed(1)+'억' : Math.round(v/10000)+'만';
     return `
       <div class="bar-col">
         <div class="bar-value">${displayVal}</div>
         <div class="bar" style="height:${h}px;"></div>
-        <div class="bar-label">${data.labels[i]}</div>
+        <div class="bar-label">${labels[i]}</div>
       </div>
     `;
   }).join('');
 }
-renderChart('daily');
+
+async function loadRecentOrders(){
+  const { data } = await window.sb
+    .from('orders')
+    .select('order_no, final_amount, status, created_at, profiles(name), order_items(qty, products(name))')
+    .order('created_at', { ascending:false })
+    .limit(5);
+
+  const rows = data || [];
+  document.getElementById('recentOrdersBody').innerHTML = rows.length
+    ? rows.map(o=>{
+        const items = o.order_items || [];
+        const itemSummary = items.length
+          ? `${items[0].products?.name || '상품'}${items.length>1 ? ` 외 ${items.length-1}건` : ''}`
+          : '-';
+        const cls = statusBadgeMap[o.status] || 'badge-gray';
+        return `<tr><td>${o.order_no}</td><td>${o.profiles?.name || '-'}</td><td>${itemSummary}</td><td>${won(o.final_amount)}</td><td><span class="badge ${cls}">${o.status}</span></td></tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="color:var(--muted);">아직 주문이 없습니다.</td></tr>';
+}
+
+async function loadBestSellers(){
+  const { data } = await window.sb
+    .from('order_items')
+    .select('qty, products(name, discount_rate, brands(name))')
+    .limit(1000);
+
+  const map = {};
+  (data||[]).forEach(item=>{
+    const name = item.products?.name;
+    if(!name) return;
+    if(!map[name]) map[name] = { name, brand: item.products?.brands?.name || '', rate: item.products?.discount_rate || 0, qty: 0 };
+    map[name].qty += item.qty;
+  });
+  const sorted = Object.values(map).sort((a,b)=>b.qty-a.qty).slice(0,5);
+
+  document.getElementById('bestSellerList').innerHTML = sorted.length
+    ? sorted.map((p,i)=>`
+        <div class="rank-item">
+          <div style="display:flex; align-items:center;"><span class="rank-num ${i===0?'top':''}">${i+1}</span><div><div class="rname">${p.name}</div><div class="rsub">${p.brand} · ${p.rate}% 할인</div></div></div>
+          <div style="font-weight:700; font-size:13px;">${p.qty}건</div>
+        </div>
+      `).join('')
+    : '<p style="color:var(--muted); font-size:13px;">아직 판매 데이터가 없습니다.</p>';
+}
+
+let cachedOrders = [];
 
 document.getElementById('periodTabs').addEventListener('click', (e)=>{
   const btn = e.target.closest('.period-tab');
   if(!btn) return;
   document.querySelectorAll('.period-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderChart(btn.dataset.p);
+  renderChart(btn.dataset.p, cachedOrders);
 });
+
+async function initDashboard(){
+  const admin = await window.requireAdmin();
+  if(!admin) return;
+  document.getElementById('adminName').textContent = `${admin.role} 님`;
+
+  const { data: orderRows } = await window.sb
+    .from('orders')
+    .select('id, final_amount, status, created_at')
+    .order('created_at', { ascending:false })
+    .limit(1000);
+  cachedOrders = orderRows || [];
+
+  await loadStats(cachedOrders);
+  loadOrderStatusGrid(cachedOrders);
+  renderChart('daily', cachedOrders);
+  await loadRecentOrders();
+  await loadBestSellers();
+}
+initDashboard();
 </script>
 </body>
 </html>

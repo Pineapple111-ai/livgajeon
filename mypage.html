@@ -331,7 +331,7 @@
         <form id="profileForm">
           <div class="field"><label>이메일</label><input type="email" id="pf_email" disabled></div>
           <div class="field"><label>이름</label><input type="text" id="pf_name"></div>
-          <div class="field"><label>휴대폰번호</label><input type="tel" id="pf_phone"></div>
+          <div class="field"><label>휴대폰번호</label><input type="tel" id="pf_phone" placeholder="010-0000-0000" maxlength="13" inputmode="numeric" oninput="formatKoreanPhone(this)"></div>
           <button type="submit" class="btn-save">저장하기</button>
         </form>
       </div>

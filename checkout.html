@@ -8,6 +8,7 @@
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js"></script>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -133,14 +134,14 @@
             </div>
             <div class="field">
               <label>휴대폰번호</label>
-              <input type="tel" id="f_phone" placeholder="- 없이 숫자만 입력">
+              <input type="tel" id="f_phone" placeholder="010-0000-0000" maxlength="13" inputmode="numeric" oninput="formatKoreanPhone(this)">
             </div>
           </div>
           <div class="field">
             <label>우편번호</label>
             <div class="zip-row">
               <input type="text" id="f_zip" placeholder="우편번호">
-              <button type="button" onclick="alert('우편번호 검색 화면입니다. (데모)')">우편번호 검색</button>
+              <button type="button" id="zipSearchBtn">우편번호 검색</button>
             </div>
           </div>
           <div class="field">
@@ -200,6 +201,16 @@
 </div>
 
 <script>
+document.getElementById('zipSearchBtn').addEventListener('click', function(){
+  new daum.Postcode({
+    oncomplete: function(data){
+      document.getElementById('f_zip').value = data.zonecode;
+      document.getElementById('f_address').value = data.roadAddress || data.jibunAddress;
+      document.getElementById('f_addressDetail').focus();
+    }
+  }).open();
+});
+
 const CATEGORY_ICON_MAP = {
   '냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`,
   '세탁/건조': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`,

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상품관리 | 리브가전 관리자</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
+    --text:#171717; --gray:#E9EBEF; --white:#FFFFFF; --muted:#7C8398;
+    --radius:3px; --sidebar-w:230px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Pretendard','Noto Sans KR',sans-serif; color:var(--text); background:var(--bg); line-height:1.5;}
+  img,svg{display:block; max-width:100%;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+
+  .admin-shell{display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh;}
+
+  .sidebar{background:var(--main); color:var(--white); padding:24px 0; position:sticky; top:0; height:100vh; overflow-y:auto;}
+  .sidebar-logo{font-size:18px; font-weight:800; padding:0 24px 24px; border-bottom:1px solid rgba(255,255,255,0.12); margin-bottom:12px;}
+  .sidebar-logo span{color:#F0A8A8;}
+  .sidebar-logo small{display:block; font-size:11px; font-weight:500; color:#9AA1B4; margin-top:4px;}
+  .nav-group{margin-bottom:6px;}
+  .nav-group-label{font-size:11px; color:#7C839E; padding:14px 24px 6px; letter-spacing:0.02em;}
+  .nav-item{display:flex; align-items:center; gap:10px; padding:11px 24px; font-size:13.5px; font-weight:500; color:#C7CCDA;}
+  .nav-item svg{width:17px; height:17px; flex-shrink:0;}
+  .nav-item.active{background:rgba(255,255,255,0.08); color:var(--white); font-weight:700; border-right:3px solid #F0A8A8;}
+  .nav-item:hover{color:var(--white);}
+
+  .main{padding:28px 32px 60px;}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;}
+  .topbar h1{font-size:22px; font-weight:800;}
+  .btn-add{padding:11px 20px; background:var(--main); color:var(--white); border-radius:var(--radius); font-size:13.5px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .btn-add svg{width:16px; height:16px;}
+
+  /* Filters */
+  .filter-bar{background:var(--white); border:1px solid var(--gray); border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
+  .filter-bar input, .filter-bar select{padding:9px 12px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-family:inherit;}
+  .filter-bar input[type=text]{flex:1; min-width:200px;}
+  .status-tabs{display:flex; gap:6px;}
+  .status-tab{padding:9px 14px; font-size:12.5px; font-weight:600; color:var(--muted); border:1px solid var(--gray); border-radius:99px;}
+  .status-tab.active{background:var(--main); color:var(--white); border-color:var(--main);}
+
+  /* Table */
+  .table-card{background:var(--white); border:1px solid var(--gray); border-radius:var(--radius); overflow:hidden;}
+  table{width:100%; border-collapse:collapse;}
+  th, td{text-align:left; padding:13px 14px; font-size:13px; border-bottom:1px solid var(--gray); white-space:nowrap;}
+  th{background:var(--bg); color:var(--muted); font-weight:600; font-size:12px;}
+  tr:last-child td{border-bottom:none;}
+  .p-thumb{width:44px; height:44px; background:var(--bg); border:1px solid var(--gray); border-radius:2px; display:flex; align-items:center; justify-content:center;}
+  .p-thumb svg{width:60%; height:60%; color:var(--sub);}
+  .p-name-cell{display:flex; align-items:center; gap:10px;}
+  .p-name{font-weight:600; max-width:220px; white-space:normal;}
+  .p-code{font-size:11px; color:var(--muted);}
+  .price-final{font-weight:700;}
+  .price-list{font-size:11px; color:var(--muted); text-decoration:line-through;}
+  .rate-tag{color:var(--point); font-weight:700;}
+  .stock-low{color:var(--point); font-weight:700;}
+  .badge{font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px;}
+  .badge-green{background:#EDF3EC; color:#2F7A45;}
+  .badge-red{background:#FDEDED; color:var(--point);}
+  .badge-gray{background:var(--gray); color:var(--muted);}
+  .row-actions{display:flex; gap:6px;}
+  .row-actions button{padding:6px 11px; border:1px solid var(--gray); border-radius:var(--radius); font-size:11.5px; font-weight:600; color:var(--sub);}
+  .row-actions button.danger{color:var(--point); border-color:#F4D4D4;}
+
+  /* Drawer form */
+  .drawer-backdrop{display:none; position:fixed; inset:0; background:rgba(23,32,51,0.5); z-index:200;}
+  .drawer-backdrop.open{display:block;}
+  .product-drawer{
+    position:fixed; top:0; right:0; bottom:0; width:min(680px,92vw); background:var(--white); z-index:210;
+    transform:translateX(100%); transition:transform .2s ease; overflow-y:auto;
+  }
+  .product-drawer.open{transform:translateX(0);}
+  .drawer-head{display:flex; justify-content:space-between; align-items:center; padding:20px 28px; border-bottom:1px solid var(--gray); position:sticky; top:0; background:var(--white); z-index:5;}
+  .drawer-head h2{font-size:17px; font-weight:800;}
+  .drawer-close{font-size:13px; color:var(--muted);}
+  .drawer-body{padding:24px 28px 100px;}
+
+  .form-section{margin-bottom:32px;}
+  .form-section h3{font-size:14px; font-weight:800; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid var(--main); display:inline-block;}
+  .form-row{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;}
+  .form-field label{display:block; font-size:12.5px; font-weight:600; color:var(--sub); margin-bottom:6px;}
+  .form-field input, .form-field select, .form-field textarea{
+    width:100%; padding:10px 12px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13.5px; font-family:inherit;
+  }
+  .form-field.full{grid-column:1/-1;}
+
+  .price-calc-box{background:var(--bg); border-radius:var(--radius); padding:16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; align-items:end;}
+  .price-calc-box .form-field label{color:var(--main);}
+  .price-calc-result{font-size:12px; color:var(--sub); margin-top:10px;}
+  .price-calc-result b{color:var(--point); font-size:14px;}
+
+  .status-pills{display:flex; gap:8px; flex-wrap:wrap;}
+  .status-pill{padding:9px 14px; border:1px solid var(--gray); border-radius:var(--radius); font-size:12.5px; font-weight:600; color:var(--sub);}
+  .status-pill.selected{background:var(--main); color:var(--white); border-color:var(--main);}
+
+  .image-slots{display:flex; gap:10px; flex-wrap:wrap;}
+  .image-slot{width:84px; height:84px; border:1px dashed var(--gray); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; text-align:center; cursor:pointer; flex-direction:column; gap:4px;}
+  .image-slot svg{width:22px; height:22px;}
+  .image-slot.filled{border-style:solid; background:var(--bg); position:relative; color:var(--sub);}
+  .image-slot .rep-tag{position:absolute; bottom:2px; left:2px; right:2px; background:var(--main); color:var(--white); font-size:9px; text-align:center; padding:1px 0; border-radius:1px;}
+
+  .dyn-row{display:grid; grid-template-columns:1fr 1fr 90px 32px; gap:8px; margin-bottom:8px; align-items:center;}
+  .dyn-row input{padding:9px 10px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-family:inherit;}
+  .dyn-remove{width:28px; height:28px; border:1px solid var(--gray); border-radius:var(--radius); color:var(--muted); font-size:14px;}
+  .dyn-add{font-size:12.5px; color:var(--main); font-weight:600; text-decoration:underline; margin-top:4px;}
+
+  .spec-row{display:grid; grid-template-columns:1fr 2fr 32px; gap:8px; margin-bottom:8px;}
+  .spec-row input{padding:9px 10px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-family:inherit;}
+
+  .drawer-foot{
+    position:sticky; bottom:0; background:var(--white); border-top:1px solid var(--gray); padding:16px 28px;
+    display:flex; gap:10px; justify-content:flex-end;
+  }
+  .btn-cancel{padding:12px 22px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13.5px; font-weight:600; color:var(--sub);}
+  .btn-save{padding:12px 26px; background:var(--main); color:var(--white); border-radius:var(--radius); font-size:13.5px; font-weight:700;}
+
+  @media (max-width:900px){
+    .admin-shell{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .form-row, .price-calc-box{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo">리브<span>가전</span><small>관리자 시스템</small></div>
+    <div class="nav-group">
+      <a class="nav-item" href="admin-dashboard.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="12" width="8" height="9" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>
+        대시보드
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">상품</div>
+      <a class="nav-item active" href="admin-products.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>
+        상품관리
+      </a>
+      <a class="nav-item" href="admin-category.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        카테고리관리
+      </a>
+      <a class="nav-item" href="admin-inventory.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        재고관리
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">주문/배송</div>
+      <a class="nav-item" href="admin-orders.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h2l2 11h10l2-8H7"/></svg>
+        주문관리
+      </a>
+      <a class="nav-item" href="admin-orders.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="7" width="14" height="10" rx="1.5"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="1.6"/><circle cx="18" cy="19" r="1.6"/></svg>
+        배송관리
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">고객</div>
+      <a class="nav-item" href="admin-customers.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-5.6 7-5.6S17.8 16 19 20"/></svg>
+        회원관리
+      </a>
+      <a class="nav-item" href="admin-customers.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l1.6 4.9H19l-4.2 3 1.6 4.9-4.4-3.1-4.4 3.1 1.6-4.9L5 7.9h5.4z"/></svg>
+        리뷰관리
+      </a>
+      <a class="nav-item" href="admin-customers.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h16v12H8l-4 4z"/></svg>
+        문의관리
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">프로모션</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12l9-9 9 9-9 9z"/><circle cx="12" cy="12" r="2"/></svg>
+        쿠폰관리
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="1.5"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+        메인배너관리
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1>상품관리</h1>
+      <button class="btn-add" id="openAddBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        상품 등록
+      </button>
+    </div>
+
+    <div class="filter-bar">
+      <input type="text" placeholder="상품명 또는 모델명 검색">
+      <select>
+        <option>브랜드 전체</option>
+        <option>삼성전자</option>
+        <option>LG전자</option>
+      </select>
+      <select>
+        <option>카테고리 전체</option>
+        <option>냉장고</option>
+        <option>세탁/건조</option>
+        <option>TV</option>
+        <option>주방가전</option>
+        <option>생활가전</option>
+      </select>
+      <div class="status-tabs" id="statusTabs">
+        <button class="status-tab active" data-s="all">전체</button>
+        <button class="status-tab" data-s="onsale">판매중</button>
+        <button class="status-tab" data-s="soldout">품절</button>
+        <button class="status-tab" data-s="stopped">판매중지</button>
+        <button class="status-tab" data-s="discount">할인상품</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>상품</th><th>카테고리</th><th>판매가</th><th>할인율</th><th>재고</th><th>판매상태</th><th>등록일</th><th>판매량</th><th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="productTbody"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Product Drawer -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="product-drawer" id="productDrawer">
+  <div class="drawer-head">
+    <h2 id="drawerTitle">상품 등록</h2>
+    <button class="drawer-close" id="drawerCloseBtn">닫기 ✕</button>
+  </div>
+  <div class="drawer-body">
+
+    <div class="form-section">
+      <h3>기본정보</h3>
+      <div class="form-row">
+        <div class="form-field"><label>상품명</label><input type="text" id="f_name" placeholder="예) BESPOKE 냉장고 4도어 875L"></div>
+        <div class="form-field"><label>모델명</label><input type="text" placeholder="예) RF85XXXX"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>브랜드</label>
+          <select><option>삼성전자</option><option>LG전자</option></select>
+        </div>
+        <div class="form-field">
+          <label>카테고리</label>
+          <select>
+            <option>냉장고</option><option>김치냉장고</option><option>세탁/건조</option><option>TV</option>
+            <option>식기세척기</option><option>주방가전</option><option>에어컨</option><option>공기청정기</option><option>생활가전</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>상품코드</label><input type="text" placeholder="자동 생성 (수정 가능)" value="LV-FR-0013"></div>
+        <div class="form-field">
+          <label>배송방법</label>
+          <select><option>일반택배</option><option>화물배송</option><option>설치배송</option><option>직접배송</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>가격 (할인율 자동계산)</h3>
+      <div class="price-calc-box">
+        <div class="form-field"><label>정상가</label><input type="text" id="f_list" inputmode="numeric" placeholder="예) 3000000"></div>
+        <div class="form-field"><label>판매가</label><input type="text" id="f_sale" inputmode="numeric" placeholder="예) 1800000"></div>
+        <div class="form-field"><label>할인율 (직접입력 가능)</label><input type="text" id="f_rate" inputmode="numeric" placeholder="%"></div>
+      </div>
+      <div class="price-calc-result">자동 계산 결과: <b id="calcResult">정상가/판매가를 입력해주세요</b></div>
+    </div>
+
+    <div class="form-section">
+      <h3>상품 이미지</h3>
+      <div class="image-slots">
+        <div class="image-slot filled">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M21 15l-5-5-4 4-3-3-6 6"/></svg>
+          대표이미지
+          <span class="rep-tag">대표</span>
+        </div>
+        <div class="image-slot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          이미지 추가
+        </div>
+        <div class="image-slot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          이미지 추가
+        </div>
+        <div class="image-slot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          이미지 추가
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>옵션 (색상/용량별 재고)</h3>
+      <div id="optionRows">
+        <div class="dyn-row">
+          <input type="text" placeholder="옵션명 (예: 색상)" value="색상">
+          <input type="text" placeholder="옵션값 (예: 화이트)" value="화이트">
+          <input type="text" placeholder="재고" inputmode="numeric" value="24">
+          <button type="button" class="dyn-remove">✕</button>
+        </div>
+        <div class="dyn-row">
+          <input type="text" placeholder="옵션명 (예: 용량)" value="용량">
+          <input type="text" placeholder="옵션값 (예: 875L)" value="875L">
+          <input type="text" placeholder="재고" inputmode="numeric" value="24">
+          <button type="button" class="dyn-remove">✕</button>
+        </div>
+      </div>
+      <button type="button" class="dyn-add" id="addOptionRow">+ 옵션 추가</button>
+    </div>
+
+    <div class="form-section">
+      <h3>상세 스펙</h3>
+      <div id="specRows">
+        <div class="spec-row"><input type="text" placeholder="항목 (예: 용량)" value="용량"><input type="text" placeholder="내용" value="875L"><button type="button" class="dyn-remove">✕</button></div>
+        <div class="spec-row"><input type="text" placeholder="항목 (예: 에너지효율)" value="에너지효율"><input type="text" placeholder="내용" value="1등급"><button type="button" class="dyn-remove">✕</button></div>
+      </div>
+      <button type="button" class="dyn-add" id="addSpecRow">+ 스펙 항목 추가</button>
+    </div>
+
+    <div class="form-section">
+      <h3>재고 / 판매상태</h3>
+      <div class="form-row">
+        <div class="form-field"><label>현재 재고 (총합)</label><input type="text" id="f_stock" inputmode="numeric" value="48"></div>
+        <div class="form-field"><label>안전재고</label><input type="text" value="5" inputmode="numeric"></div>
+      </div>
+      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--sub); margin-bottom:8px;">판매상태</label>
+      <div class="status-pills" id="salePills">
+        <button type="button" class="status-pill selected" data-v="onsale">판매중</button>
+        <button type="button" class="status-pill" data-v="soldout">품절</button>
+        <button type="button" class="status-pill" data-v="temp">일시품절</button>
+        <button type="button" class="status-pill" data-v="stopped">판매중지</button>
+        <button type="button" class="status-pill" data-v="reserve">예약판매</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>상품 설명</h3>
+      <div class="form-field full">
+        <textarea rows="4" placeholder="상품 상세 설명을 입력해주세요"></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn-cancel" id="drawerCancelBtn">취소</button>
+    <button class="btn-save" id="drawerSaveBtn">저장하기</button>
+  </div>
+</div>
+
+<script>
+const fridgeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`;
+const laundryIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`;
+const tvIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`;
+const kitchenIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`;
+
+let products = [
+  {id:1, name:'BESPOKE 냉장고 4도어 875L', icon:fridgeIcon, cat:'냉장고', list:3299000, price:1814000, rate:45, stock:48, status:'onsale', date:'2026.06.02', sold:32},
+  {id:2, name:'오브제컬렉션 세탁건조기 21kg', icon:laundryIcon, cat:'세탁/건조', list:2890000, price:1908000, rate:34, stock:3, status:'onsale', date:'2026.06.10', sold:21},
+  {id:3, name:'Neo QLED 4K TV 65형', icon:tvIcon, cat:'TV', list:3190000, price:1975000, rate:38, stock:14, status:'onsale', date:'2026.05.28', sold:27},
+  {id:4, name:'퓨리케어 공기청정기 360°', icon:kitchenIcon, cat:'생활가전', list:890000, price:623000, rate:30, stock:0, status:'soldout', date:'2026.05.15', sold:18},
+  {id:5, name:'트롬 건조기 히트펌프 21kg', icon:laundryIcon, cat:'세탁/건조', list:1590000, price:1113000, rate:30, stock:2, status:'onsale', date:'2026.04.20', sold:9},
+  {id:6, name:'비스포크 광파오븐', icon:kitchenIcon, cat:'주방가전', list:590000, price:413000, rate:30, stock:31, status:'stopped', date:'2026.03.11', sold:14},
+];
+
+function won(n){ return n.toLocaleString('ko-KR')+'원'; }
+const statusLabel = {onsale:['판매중','badge-green'], soldout:['품절','badge-red'], stopped:['판매중지','badge-gray'], temp:['일시품절','badge-gray'], reserve:['예약판매','badge-gray']};
+
+function renderTable(filter='all'){
+  const tbody = document.getElementById('productTbody');
+  let list = products;
+  if(filter==='onsale') list = list.filter(p=>p.status==='onsale');
+  if(filter==='soldout') list = list.filter(p=>p.status==='soldout');
+  if(filter==='stopped') list = list.filter(p=>p.status==='stopped');
+  if(filter==='discount') list = list.filter(p=>p.rate>=30);
+
+  tbody.innerHTML = list.map(p=>{
+    const [label, cls] = statusLabel[p.status];
+    return `
+    <tr>
+      <td>
+        <div class="p-name-cell">
+          <div class="p-thumb">${p.icon}</div>
+          <div>
+            <div class="p-name">${p.name}</div>
+            <div class="p-code">ID ${p.id}</div>
+          </div>
+        </div>
+      </td>
+      <td>${p.cat}</td>
+      <td><div class="price-final">${won(p.price)}</div><div class="price-list">${won(p.list)}</div></td>
+      <td class="rate-tag">${p.rate}%</td>
+      <td class="${p.stock<=5 ? 'stock-low':''}">${p.stock}개</td>
+      <td><span class="badge ${cls}">${label}</span></td>
+      <td>${p.date}</td>
+      <td>${p.sold}건</td>
+      <td>
+        <div class="row-actions">
+          <button onclick="openDrawer(${p.id})">수정</button>
+          <button class="danger" onclick="deleteProduct(${p.id})">삭제</button>
+        </div>
+      </td>
+    </tr>
+  `;
+  }).join('');
+}
+renderTable();
+
+document.getElementById('statusTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.status-tab');
+  if(!btn) return;
+  document.querySelectorAll('.status-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable(btn.dataset.s);
+});
+
+function deleteProduct(id){
+  if(!confirm('선택한 상품을 삭제하시겠습니까?')) return;
+  products = products.filter(p=>p.id!==id);
+  renderTable(document.querySelector('.status-tab.active').dataset.s);
+}
+
+// ---------- Drawer ----------
+const drawer = document.getElementById('productDrawer');
+const backdrop = document.getElementById('drawerBackdrop');
+function openDrawer(id){
+  document.getElementById('drawerTitle').textContent = id ? '상품 수정' : '상품 등록';
+  if(id){
+    const p = products.find(x=>x.id===id);
+    document.getElementById('f_name').value = p.name;
+    document.getElementById('f_list').value = p.list;
+    document.getElementById('f_sale').value = p.price;
+    document.getElementById('f_stock').value = p.stock;
+    recalcFromPrices();
+  }
+  drawer.classList.add('open');
+  backdrop.classList.add('open');
+}
+function closeDrawer(){
+  drawer.classList.remove('open');
+  backdrop.classList.remove('open');
+}
+document.getElementById('openAddBtn').addEventListener('click', ()=>openDrawer(null));
+document.getElementById('drawerCloseBtn').addEventListener('click', closeDrawer);
+document.getElementById('drawerCancelBtn').addEventListener('click', closeDrawer);
+backdrop.addEventListener('click', closeDrawer);
+
+document.getElementById('drawerSaveBtn').addEventListener('click', ()=>{
+  alert('상품 정보가 저장되었습니다. (데모: 실제 서비스에서는 DB에 반영되고 목록이 갱신됩니다)');
+  closeDrawer();
+});
+
+// ---------- Price auto-calc ----------
+const listInput = document.getElementById('f_list');
+const saleInput = document.getElementById('f_sale');
+const rateInput = document.getElementById('f_rate');
+const calcResult = document.getElementById('calcResult');
+
+function num(v){ return parseInt(String(v).replace(/[^0-9]/g,'')) || 0; }
+
+function recalcFromPrices(){
+  const list = num(listInput.value);
+  const sale = num(saleInput.value);
+  if(list>0 && sale>0){
+    const rate = Math.round((1 - sale/list)*100);
+    rateInput.value = rate;
+    calcResult.innerHTML = `정상가 ${list.toLocaleString('ko-KR')}원 → 판매가 ${sale.toLocaleString('ko-KR')}원 (<b>${rate}% 할인</b>)`;
+  }
+}
+function recalcFromRate(){
+  const list = num(listInput.value);
+  const rate = num(rateInput.value);
+  if(list>0 && rate>0){
+    const sale = Math.round(list * (1 - rate/100));
+    saleInput.value = sale;
+    calcResult.innerHTML = `정상가 ${list.toLocaleString('ko-KR')}원 → 판매가 ${sale.toLocaleString('ko-KR')}원 (<b>${rate}% 할인</b>)`;
+  }
+}
+listInput.addEventListener('input', recalcFromPrices);
+saleInput.addEventListener('input', recalcFromPrices);
+rateInput.addEventListener('input', recalcFromRate);
+
+// ---------- Sale status pills ----------
+document.getElementById('salePills').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.status-pill');
+  if(!btn) return;
+  document.querySelectorAll('#salePills .status-pill').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+});
+
+// ---------- Dynamic option / spec rows ----------
+document.getElementById('addOptionRow').addEventListener('click', ()=>{
+  const row = document.createElement('div');
+  row.className = 'dyn-row';
+  row.innerHTML = `
+    <input type="text" placeholder="옵션명">
+    <input type="text" placeholder="옵션값">
+    <input type="text" placeholder="재고" inputmode="numeric">
+    <button type="button" class="dyn-remove">✕</button>
+  `;
+  document.getElementById('optionRows').appendChild(row);
+});
+document.getElementById('addSpecRow').addEventListener('click', ()=>{
+  const row = document.createElement('div');
+  row.className = 'spec-row';
+  row.innerHTML = `
+    <input type="text" placeholder="항목">
+    <input type="text" placeholder="내용">
+    <button type="button" class="dyn-remove">✕</button>
+  `;
+  document.getElementById('specRows').appendChild(row);
+});
+document.getElementById('productDrawer').addEventListener('click', (e)=>{
+  if(e.target.classList.contains('dyn-remove')){
+    e.target.closest('.dyn-row, .spec-row').remove();
+  }
+});
+</script>
+</body>
+</html>

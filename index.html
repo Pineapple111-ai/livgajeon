@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>리브가전 | 프리미엄 가전, 더 합리적인 선택</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --main:#172033;
+    --sub:#39445A;
+    --bg:#F7F8FA;
+    --point:#C83D3D;
+    --text:#171717;
+    --gray:#E9EBEF;
+    --white:#FFFFFF;
+    --muted:#7C8398;
+    --radius:3px;
+    --maxw:1240px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
+    color:var(--text);
+    background:var(--white);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  img,svg{display:block; max-width:100%;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  ul{list-style:none;}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px;}
+  .visually-hidden{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);}
+
+  /* ---------- Header ---------- */
+  header.site-header{
+    position:sticky; top:0; z-index:100;
+    background:rgba(255,255,255,0.96);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--gray);
+  }
+  .header-inner{
+    max-width:var(--maxw); margin:0 auto; padding:0 24px;
+    height:72px; display:flex; align-items:center; justify-content:space-between;
+    gap:32px;
+  }
+  .logo{
+    font-size:22px; font-weight:800; letter-spacing:-0.03em; color:var(--main);
+    flex-shrink:0;
+  }
+  .logo span{color:var(--point);}
+  nav.main-nav{flex:1;}
+  nav.main-nav ul{display:flex; gap:32px; justify-content:center;}
+  nav.main-nav a{
+    font-size:15px; font-weight:500; color:var(--text); white-space:nowrap;
+    padding:6px 0; border-bottom:2px solid transparent;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  nav.main-nav a:hover{border-color:var(--main);}
+  nav.main-nav a.discount{color:var(--point); font-weight:700;}
+  .header-actions{display:flex; align-items:center; gap:18px; flex-shrink:0;}
+  .icon-btn{
+    display:flex; align-items:center; justify-content:center;
+    width:36px; height:36px; color:var(--main);
+  }
+  .icon-btn svg{width:20px; height:20px;}
+  .header-actions .divider{width:1px; height:16px; background:var(--gray);}
+  .header-text-link{font-size:13px; color:var(--sub); font-weight:500;}
+  .hamburger{display:none;}
+
+  /* search overlay */
+  .search-overlay{
+    position:fixed; inset:0; background:rgba(23,32,51,0.5);
+    display:none; z-index:200; align-items:flex-start; justify-content:center;
+  }
+  .search-overlay.open{display:flex;}
+  .search-panel{
+    margin-top:120px; background:var(--white); width:min(560px,90vw);
+    padding:28px; border-radius:var(--radius); box-shadow:0 12px 40px rgba(0,0,0,0.15);
+  }
+  .search-panel p{font-size:13px; color:var(--muted); margin-bottom:12px;}
+  .search-panel .search-row{display:flex; border-bottom:2px solid var(--main); padding-bottom:10px;}
+  .search-panel input{flex:1; border:none; outline:none; font-size:17px; font-family:inherit;}
+  .search-panel .close-btn{position:absolute; top:20px; right:24px; font-size:13px; color:var(--muted);}
+  .search-panel{position:relative;}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    background:var(--main);
+    color:var(--white);
+    padding:88px 0 0;
+    overflow:hidden;
+  }
+  .hero-inner{
+    max-width:var(--maxw); margin:0 auto; padding:0 24px;
+    display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:40px;
+  }
+  .hero-badge{
+    display:inline-block; font-size:13px; font-weight:600; letter-spacing:-0.01em;
+    color:var(--main); background:var(--white);
+    padding:6px 14px; border-radius:99px; margin-bottom:24px;
+  }
+  .hero-copy h1{
+    font-size:44px; line-height:1.28; font-weight:800; letter-spacing:-0.02em;
+    margin-bottom:20px;
+  }
+  .hero-copy p.sub{font-size:17px; color:#C7CCDA; margin-bottom:8px;}
+  .hero-copy p.discount-line{
+    font-size:19px; font-weight:700; color:var(--white); margin-bottom:36px;
+  }
+  .hero-copy p.discount-line em{color:#F0A8A8; font-style:normal;}
+  .hero-actions{display:flex; gap:12px;}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:14px 26px; font-size:15px; font-weight:600; border-radius:var(--radius);
+    transition:opacity .15s ease;
+  }
+  .btn:hover{opacity:0.85;}
+  .btn-primary{background:var(--white); color:var(--main);}
+  .btn-outline{border:1px solid rgba(255,255,255,0.5); color:var(--white);}
+  .hero-visual{position:relative; display:flex; align-items:flex-end; justify-content:center; height:420px;}
+  .hero-visual svg{width:100%; max-width:420px; height:auto;}
+
+  /* ---------- Section shell ---------- */
+  section{padding:80px 0;}
+  .section-head{margin-bottom:40px;}
+  .section-head .eyebrow{font-size:13px; color:var(--point); font-weight:600; margin-bottom:10px;}
+  .section-head h2{font-size:28px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;}
+  .section-head p{font-size:15px; color:var(--muted);}
+  .section-head-row{display:flex; justify-content:space-between; align-items:flex-end;}
+  .link-more{font-size:14px; font-weight:600; color:var(--main); border-bottom:1px solid var(--main); padding-bottom:2px;}
+
+  /* ---------- Category ---------- */
+  .category-section{background:var(--bg);}
+  .category-grid{
+    display:grid; grid-template-columns:repeat(8,1fr); gap:16px;
+  }
+  .category-card{
+    background:var(--white); border:1px solid var(--gray); border-radius:var(--radius);
+    padding:24px 12px; text-align:center; transition:border-color .15s ease, transform .15s ease;
+  }
+  .category-card:hover{border-color:var(--main); transform:translateY(-2px);}
+  .category-card svg{width:32px; height:32px; margin:0 auto 14px; color:var(--main);}
+  .category-card span{font-size:13px; font-weight:600; color:var(--text);}
+
+  /* ---------- Product cards (shared) ---------- */
+  .product-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:24px;}
+  .product-card{border:1px solid var(--gray); border-radius:var(--radius); overflow:hidden; background:var(--white); position:relative;}
+  .product-thumb{
+    aspect-ratio:4/3; background:var(--gray); display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .product-thumb svg{width:44%; height:44%; color:var(--sub);}
+  .wish-btn{
+    position:absolute; top:12px; right:12px; width:32px; height:32px; border-radius:50%;
+    background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center;
+  }
+  .wish-btn svg{width:16px; height:16px; color:var(--main);}
+  .wish-btn.active svg{color:var(--point); fill:var(--point);}
+  .discount-flag{
+    position:absolute; top:12px; left:12px; background:var(--main); color:var(--white);
+    font-size:12px; font-weight:700; padding:4px 9px; border-radius:2px;
+  }
+  .product-info{padding:18px 16px 20px;}
+  .brand{font-size:12px; color:var(--muted); font-weight:600; margin-bottom:6px;}
+  .product-name{font-size:15px; font-weight:600; margin-bottom:10px; line-height:1.4; min-height:42px;}
+  .price-row{display:flex; align-items:baseline; gap:8px; margin-bottom:4px;}
+  .rate{color:var(--point); font-weight:800; font-size:16px;}
+  .final-price{font-size:18px; font-weight:800; color:var(--text);}
+  .list-price{font-size:13px; color:var(--muted); text-decoration:line-through;}
+  .ship-info{font-size:12px; color:var(--muted); margin-top:8px;}
+  .rating-row{display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); margin-top:8px;}
+  .rating-row .star{color:var(--main);}
+
+  /* ---------- Premium Collection ---------- */
+  .premium-section{background:var(--main); color:var(--white);}
+  .premium-section .section-head .eyebrow{color:#F0A8A8;}
+  .premium-section .section-head p{color:#C7CCDA;}
+  .premium-grid{display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+  .premium-card{
+    background:var(--sub); border-radius:var(--radius); padding:40px; min-height:320px;
+    display:flex; flex-direction:column; justify-content:flex-end;
+  }
+  .premium-card .tag{font-size:13px; color:#C7CCDA; margin-bottom:10px; font-weight:600;}
+  .premium-card h3{font-size:24px; font-weight:800; margin-bottom:10px;}
+  .premium-card p{font-size:14px; color:#C7CCDA; margin-bottom:20px; max-width:360px;}
+  .premium-card svg{position:absolute;}
+  .premium-card-inner{position:relative;}
+  .premium-visual{position:absolute; top:24px; right:24px; opacity:0.9;}
+  .premium-visual svg{width:96px; height:96px; color:rgba(255,255,255,0.5);}
+  .premium-card-inner{padding:0; height:100%; display:flex; flex-direction:column; justify-content:flex-end;}
+
+  /* ---------- Promo banner ---------- */
+  .promo-banner{
+    background:var(--bg); border-top:1px solid var(--gray); border-bottom:1px solid var(--gray);
+    padding:0;
+  }
+  .promo-inner{
+    max-width:var(--maxw); margin:0 auto; padding:56px 24px;
+    display:flex; align-items:center; justify-content:space-between; gap:24px;
+  }
+  .promo-text h3{font-size:24px; font-weight:800; margin-bottom:8px;}
+  .promo-text p{font-size:15px; color:var(--muted);}
+  .promo-banner .btn-primary{background:var(--main); color:var(--white);}
+
+  /* ---------- Recommended / filter ---------- */
+  .filter-tabs{display:flex; gap:8px; margin-bottom:32px; flex-wrap:wrap;}
+  .filter-tab{
+    padding:9px 18px; font-size:14px; font-weight:600; border:1px solid var(--gray); border-radius:99px;
+    color:var(--sub);
+  }
+  .filter-tab.active{background:var(--main); color:var(--white); border-color:var(--main);}
+  .rec-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:24px;}
+  .rec-card{display:none;}
+  .rec-card.show{display:block;}
+
+  /* ---------- Footer ---------- */
+  footer{background:var(--main); color:#C7CCDA; padding:64px 0 32px;}
+  .footer-top{
+    display:grid; grid-template-columns:1.3fr 1fr 1fr 1.2fr; gap:40px; padding-bottom:40px;
+    border-bottom:1px solid rgba(255,255,255,0.12);
+  }
+  .footer-logo{font-size:20px; font-weight:800; color:var(--white); margin-bottom:14px;}
+  .footer-desc{font-size:13px; line-height:1.7; color:#9AA1B4; max-width:280px;}
+  .footer-col h4{font-size:14px; font-weight:700; color:var(--white); margin-bottom:16px;}
+  .footer-col ul li{margin-bottom:10px;}
+  .footer-col a{font-size:13px; color:#9AA1B4;}
+  .footer-col a:hover{color:var(--white);}
+  .cs-phone{font-size:22px; font-weight:800; color:var(--white); margin-bottom:6px;}
+  .cs-time{font-size:13px; color:#9AA1B4;}
+  .footer-bottom{padding-top:24px; font-size:12px; color:#7C839E; line-height:1.8;}
+
+  /* ---------- Mobile bottom nav ---------- */
+  .mobile-tabbar{display:none;}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:1024px){
+    .category-grid{grid-template-columns:repeat(4,1fr);}
+    .product-grid, .rec-grid{grid-template-columns:repeat(2,1fr);}
+    .premium-grid{grid-template-columns:1fr;}
+    .hero-inner{grid-template-columns:1fr;}
+    .hero-visual{order:-1; height:280px;}
+    .hero-copy h1{font-size:34px;}
+    .footer-top{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:640px){
+    nav.main-nav{display:none;}
+    .hamburger{display:flex;}
+    .header-text-link{display:none;}
+    .header-actions .divider{display:none;}
+    .header-actions{gap:8px;}
+    .category-grid{grid-template-columns:repeat(3,1fr);}
+    .product-grid, .rec-grid{grid-template-columns:repeat(2,1fr);}
+    .product-name{min-height:auto;}
+    section{padding:56px 0;}
+    .hero{padding-top:64px;}
+    .hero-copy h1{font-size:28px;}
+    .promo-inner{flex-direction:column; align-items:flex-start; text-align:left;}
+    .footer-top{grid-template-columns:1fr;}
+    body{padding-bottom:64px;}
+    .mobile-tabbar{
+      display:flex; position:fixed; bottom:0; left:0; right:0; height:60px;
+      background:var(--white); border-top:1px solid var(--gray); z-index:150;
+      justify-content:space-around; align-items:center;
+    }
+    .mobile-tabbar a{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; color:var(--muted);}
+    .mobile-tabbar a svg{width:20px; height:20px;}
+    .mobile-tabbar a.active{color:var(--main); font-weight:700;}
+  }
+
+  /* Mobile drawer menu */
+  .drawer{
+    position:fixed; top:0; right:0; bottom:0; width:78%; max-width:320px;
+    background:var(--white); z-index:210; transform:translateX(100%);
+    transition:transform .2s ease; padding:24px; overflow-y:auto;
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer-backdrop{
+    position:fixed; inset:0; background:rgba(23,32,51,0.5); z-index:205; display:none;
+  }
+  .drawer-backdrop.open{display:block;}
+  .drawer-close{margin-bottom:24px; font-size:14px; color:var(--muted);}
+  .drawer ul li{border-bottom:1px solid var(--gray);}
+  .drawer ul li a{display:block; padding:16px 4px; font-size:16px; font-weight:600;}
+</style>
+</head>
+<body>
+
+<!-- ================= Header ================= -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="#top" class="logo">리브<span>가전</span></a>
+    <nav class="main-nav" aria-label="주요 카테고리">
+      <ul>
+        <li><a href="products.html">전체 카테고리</a></li>
+        <li><a href="products.html?cat=fridge">냉장고</a></li>
+        <li><a href="products.html?cat=laundry">세탁/건조</a></li>
+        <li><a href="products.html?cat=tv">TV</a></li>
+        <li><a href="products.html?cat=kitchen">주방가전</a></li>
+        <li><a href="products.html?cat=living">생활가전</a></li>
+        <li><a href="products.html?discount=1" class="discount">할인상품</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" id="searchOpenBtn" aria-label="검색">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+      </button>
+      <span class="divider"></span>
+      <a href="auth.html" class="header-text-link">로그인</a>
+      <a href="auth.html" class="header-text-link">회원가입</a>
+      <span class="divider"></span>
+      <button class="icon-btn" aria-label="장바구니" onclick="location.href='cart.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h2l2 11h10l2-8H7"/><circle cx="10" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/></svg>
+      </button>
+      <button class="icon-btn" aria-label="마이페이지" onclick="location.href='mypage.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-5.6 7-5.6S17.8 16 19 20"/></svg>
+      </button>
+      <button class="icon-btn hamburger" id="menuOpenBtn" aria-label="메뉴">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Search overlay -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-panel">
+    <button class="close-btn" id="searchCloseBtn">닫기</button>
+    <p>어떤 가전을 찾고 계신가요?</p>
+    <div class="search-row">
+      <input type="text" placeholder="예) BESPOKE 냉장고, 건조기, OLED TV">
+      <button class="icon-btn" aria-label="검색 실행">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile drawer -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="drawer" id="drawer">
+  <button class="drawer-close" id="drawerCloseBtn">닫기 ✕</button>
+  <ul>
+    <li><a href="products.html">전체 카테고리</a></li>
+    <li><a href="products.html?cat=fridge">냉장고</a></li>
+    <li><a href="products.html?cat=laundry">세탁/건조</a></li>
+    <li><a href="products.html?cat=tv">TV</a></li>
+    <li><a href="products.html?cat=kitchen">주방가전</a></li>
+    <li><a href="products.html?cat=living">생활가전</a></li>
+    <li><a href="products.html?discount=1" style="color:#C83D3D">할인상품</a></li>
+    <li><a href="auth.html">로그인</a></li>
+    <li><a href="auth.html">회원가입</a></li>
+    <li><a href="mypage.html">마이페이지</a></li>
+  </ul>
+</div>
+
+<!-- ================= Hero ================= -->
+<section class="hero" id="top">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <span class="hero-badge">인기 프리미엄 가전 최대 45% OFF</span>
+      <h1>프리미엄 가전,<br>더 합리적인 선택</h1>
+      <p class="sub">삼성·LG 인기 가전을 특별한 가격으로 만나보세요.</p>
+      <p class="discount-line">지금 리브가전에서 <em>최대 45%</em> 저렴하게</p>
+      <div class="hero-actions">
+        <a href="products.html?discount=1" class="btn btn-primary">할인상품 보기</a>
+        <a href="products.html" class="btn btn-outline">전체상품 보기</a>
+      </div>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <svg viewBox="0 0 320 380" fill="none">
+        <rect x="60" y="20" width="200" height="340" rx="6" fill="#39445A"/>
+        <rect x="60" y="20" width="200" height="150" rx="6" fill="#4A5670"/>
+        <line x1="60" y1="170" x2="260" y2="170" stroke="#172033" stroke-width="3"/>
+        <rect x="220" y="45" width="8" height="90" rx="4" fill="#F7F8FA"/>
+        <rect x="220" y="200" width="8" height="130" rx="4" fill="#F7F8FA"/>
+        <rect x="80" y="55" width="110" height="10" rx="5" fill="rgba(247,248,250,0.25)"/>
+        <rect x="80" y="80" width="80" height="10" rx="5" fill="rgba(247,248,250,0.18)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Category ================= -->
+<section class="category-section" id="category">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">CATEGORY</div>
+      <h2>필요한 가전을 빠르게 찾아보세요</h2>
+    </div>
+    <div class="category-grid">
+      <a class="category-card" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="8" y1="5" x2="8" y2="7"/><line x1="8" y1="13" x2="8" y2="15"/></svg>
+        <span>냉장고</span>
+      </a>
+      <a class="category-card" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="18" height="14" rx="1.5"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="7" y1="4" x2="7" y2="7"/><line x1="17" y1="4" x2="17" y2="7"/></svg>
+        <span>김치냉장고</span>
+      </a>
+      <a class="category-card" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="2"/><line x1="8" y1="6" x2="9.5" y2="6"/></svg>
+        <span>세탁/건조</span>
+      </a>
+      <a class="category-card" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span>TV</span>
+      </a>
+      <a class="category-card" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/><line x1="8" y1="16" x2="8" y2="16.01"/></svg>
+        <span>주방가전</span>
+      </a>
+      <a class="category-card" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20c3-1 4-4 4-7V6h8v7c0 3 1 6 4 7"/><line x1="9" y1="20" x2="15" y2="20"/></svg>
+        <span>생활가전</span>
+      </a>
+      <a class="category-card" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="6" width="19" height="8" rx="1.5"/><line x1="6" y1="18" x2="6" y2="20"/><line x1="18" y1="18" x2="18" y2="20"/><path d="M9 14c0 2 1 3 3 3s3-1 3-3"/></svg>
+        <span>에어컨</span>
+      </a>
+      <a class="category-card" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M4 9c1 0 1.5-1 1.5-2M20 9c-1 0-1.5-1-1.5-2M4 13c1 0 1.5 1 1.5 2M20 13c-1 0-1.5 1-1.5 2"/></svg>
+        <span>청소/공기관리</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Popular Discount Products ================= -->
+<section id="discount">
+  <div class="wrap">
+    <div class="section-head-row">
+      <div class="section-head">
+        <div class="eyebrow">BEST DEAL</div>
+        <h2>지금 가장 많이 찾는 할인상품</h2>
+        <p>리브가전에서 특별한 가격으로 만나보세요.</p>
+      </div>
+      <a href="products.html?discount=1" class="link-more">전체보기</a>
+    </div>
+    <div class="product-grid" id="discountGrid"></div>
+  </div>
+</section>
+
+<!-- ================= Premium Collection ================= -->
+<section class="premium-section">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">PREMIUM COLLECTION</div>
+      <h2>공간의 품격을 높이는 프리미엄 가전</h2>
+      <p>디자인과 성능을 동시에 갖춘 리브가전의 시그니처 라인업</p>
+    </div>
+    <div class="premium-grid">
+      <div class="premium-card">
+        <div class="premium-card-inner">
+          <div class="premium-visual">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>
+          </div>
+          <div class="tag">SAMSUNG</div>
+          <h3>BESPOKE</h3>
+          <p>취향에 맞춰 색상과 소재를 고르는 나만의 냉장고. 공간에 맞춘 완성형 디자인.</p>
+          <a href="#" class="btn btn-outline">컬렉션 보기</a>
+        </div>
+      </div>
+      <div class="premium-card">
+        <div class="premium-card-inner">
+          <div class="premium-visual">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="9" cy="13" r="3.5"/></svg>
+          </div>
+          <div class="tag">LG전자</div>
+          <h3>Objet Collection</h3>
+          <p>가전을 넘어 인테리어가 되는 오브제. 세탁·건조·공기청정까지 하나의 톤으로.</p>
+          <a href="#" class="btn btn-outline">컬렉션 보기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Promo banner ================= -->
+<div class="promo-banner">
+  <div class="promo-inner">
+    <div class="promo-text">
+      <h3>최대 45% 특별 할인</h3>
+      <p>프리미엄 가전을 더 합리적으로 — 오늘의 특가를 확인해보세요.</p>
+    </div>
+    <a href="products.html?discount=1" class="btn btn-primary">할인상품 전체보기</a>
+  </div>
+</div>
+
+<!-- ================= Recommended (filter) ================= -->
+<section id="recommend">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">RECOMMEND</div>
+      <h2>리브가전 추천상품</h2>
+    </div>
+    <div class="filter-tabs" id="filterTabs">
+      <button class="filter-tab active" data-filter="all">전체</button>
+      <button class="filter-tab" data-filter="fridge">냉장고</button>
+      <button class="filter-tab" data-filter="laundry">세탁/건조</button>
+      <button class="filter-tab" data-filter="tv">TV</button>
+      <button class="filter-tab" data-filter="kitchen">주방가전</button>
+      <button class="filter-tab" data-filter="living">생활가전</button>
+    </div>
+    <div class="rec-grid" id="recGrid"></div>
+  </div>
+</section>
+
+<!-- ================= Footer ================= -->
+<footer>
+  <div class="wrap">
+    <div class="footer-top">
+      <div>
+        <div class="footer-logo">리브가전</div>
+        <p class="footer-desc">프리미엄 가전을 합리적인 가격에 만나는 온라인 가전 전문점입니다. 삼성·LG 정품 가전을 신뢰할 수 있는 방식으로 제공합니다.</p>
+      </div>
+      <div class="footer-col">
+        <h4>회사</h4>
+        <ul>
+          <li><a href="#">회사소개</a></li>
+          <li><a href="#">이용약관</a></li>
+          <li><a href="#">개인정보처리방침</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>고객지원</h4>
+        <ul>
+          <li><a href="#">이용안내</a></li>
+          <li><a href="#">고객센터</a></li>
+          <li><a href="#">배송/교환/반품 안내</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>고객센터</h4>
+        <div class="cs-phone">0000-0000-0000</div>
+        <div class="cs-time">평일 09:00 ~ 18:00 (주말·공휴일 휴무)</div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      상호명 리브가전(예시) · 대표자 000 · 사업자등록번호 000-00-00000 · 통신판매업신고 제0000-서울00-0000호<br>
+      주소 서울특별시 00구 00로 00 · 이메일 support@livgajeon.example<br>
+      © 2026 리브가전. All rights reserved. (실제 사업자 정보는 관리자 페이지에서 입력해주세요)
+    </div>
+  </div>
+</footer>
+
+<!-- Mobile bottom tab bar -->
+<nav class="mobile-tabbar" aria-label="모바일 메뉴">
+  <a href="#top" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></svg>
+    홈
+  </a>
+  <a href="#category">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    카테고리
+  </a>
+  <a href="#" id="mobileSearchBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+    검색
+  </a>
+  <a href="#">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.6-9.3-9C1.2 7.8 3 4.5 6.5 4.5c2 0 3.3 1 4 2.2.7-1.2 2-2.2 4-2.2 3.5 0 5.3 3.3 3.8 6.5C19 15.4 12 20 12 20z"/></svg>
+    찜
+  </a>
+  <a href="#">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-5.6 7-5.6S17.8 16 19 20"/></svg>
+    마이
+  </a>
+</nav>
+
+<script>
+// ---------- Data ----------
+const fridgeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="8" y1="5" x2="8" y2="7"/><line x1="8" y1="13" x2="8" y2="15"/></svg>`;
+const laundryIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="2"/></svg>`;
+const tvIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
+const kitchenIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`;
+const livingIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
+
+const discountProducts = [
+  {id:1, brand:'삼성전자', name:'BESPOKE 냉장고 4도어 875L', list:3299000, price:1814000, rate:45, icon:fridgeIcon, ship:'무료배송 · 설치배송'},
+  {id:2, brand:'LG전자', name:'오브제컬렉션 세탁건조기 21kg', list:2890000, price:1908000, rate:34, icon:laundryIcon, ship:'무료배송 · 설치배송'},
+  {id:3, brand:'삼성전자', name:'Neo QLED 4K TV 65형', list:3190000, price:1975000, rate:38, icon:tvIcon, ship:'무료배송 · 벽걸이 옵션'},
+  {id:4, brand:'LG전자', name:'퓨리케어 공기청정기 360°', list:890000, price:623000, rate:30, icon:livingIcon, ship:'무료배송'},
+];
+
+const recProducts = [
+  {id:12, brand:'삼성전자', name:'BESPOKE 김치냉장고 4도어', list:2190000, price:1533000, rate:30, icon:fridgeIcon, cat:'fridge', rating:4.8, reviews:214},
+  {id:5, brand:'LG전자', name:'오브제컬렉션 냉장고 4도어', list:3450000, price:2415000, rate:30, icon:fridgeIcon, cat:'fridge', rating:4.7, reviews:132},
+  {id:6, brand:'삼성전자', name:'BESPOKE 세탁기 24kg', list:1690000, price:1183000, rate:30, icon:laundryIcon, cat:'laundry', rating:4.9, reviews:301},
+  {id:7, brand:'LG전자', name:'트롬 건조기 히트펌프 21kg', list:1590000, price:1113000, rate:30, icon:laundryIcon, cat:'laundry', rating:4.6, reviews:98},
+  {id:8, brand:'삼성전자', name:'OLED TV 55형', list:2390000, price:1673000, rate:30, icon:tvIcon, cat:'tv', rating:4.8, reviews:176},
+  {id:9, brand:'LG전자', name:'울트라HD 스마트 TV 75형', list:2790000, price:1953000, rate:30, icon:tvIcon, cat:'tv', rating:4.5, reviews:87},
+  {id:10, brand:'삼성전자', name:'비스포크 광파오븐', list:590000, price:413000, rate:30, icon:kitchenIcon, cat:'kitchen', rating:4.7, reviews:64},
+  {id:11, brand:'LG전자', name:'디오스 식기세척기 12인용', list:1290000, price:903000, rate:30, icon:kitchenIcon, cat:'kitchen', rating:4.6, reviews:120},
+];
+
+function won(n){return n.toLocaleString('ko-KR')+'원';}
+
+function renderDiscountGrid(){
+  const el = document.getElementById('discountGrid');
+  el.innerHTML = discountProducts.map(p=>`
+    <a class="product-card" href="product-detail.html?id=${p.id}">
+      <div class="product-thumb">
+        <span class="discount-flag">${p.rate}% OFF</span>
+        <button class="wish-btn" aria-label="찜하기" onclick="event.preventDefault(); this.classList.toggle('active')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.6-9.3-9C1.2 7.8 3 4.5 6.5 4.5c2 0 3.3 1 4 2.2.7-1.2 2-2.2 4-2.2 3.5 0 5.3 3.3 3.8 6.5C19 15.4 12 20 12 20z"/></svg>
+        </button>
+        ${p.icon}
+      </div>
+      <div class="product-info">
+        <div class="brand">${p.brand}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="price-row"><span class="rate">${p.rate}%</span><span class="final-price">${won(p.price)}</span></div>
+        <div class="list-price">${won(p.list)}</div>
+        <div class="ship-info">${p.ship}</div>
+      </div>
+    </a>
+  `).join('');
+}
+
+function renderRecGrid(){
+  const el = document.getElementById('recGrid');
+  el.innerHTML = recProducts.map(p=>`
+    <a class="product-card rec-card show" data-cat="${p.cat}" href="product-detail.html?id=${p.id}">
+      <div class="product-thumb">
+        <span class="discount-flag">${p.rate}% OFF</span>
+        <button class="wish-btn" aria-label="찜하기" onclick="event.preventDefault(); this.classList.toggle('active')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.6-9.3-9C1.2 7.8 3 4.5 6.5 4.5c2 0 3.3 1 4 2.2.7-1.2 2-2.2 4-2.2 3.5 0 5.3 3.3 3.8 6.5C19 15.4 12 20 12 20z"/></svg>
+        </button>
+        ${p.icon}
+      </div>
+      <div class="product-info">
+        <div class="brand">${p.brand}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="rating-row"><span class="star">★</span>${p.rating} (${p.reviews})</div>
+        <div class="price-row"><span class="rate">${p.rate}%</span><span class="final-price">${won(p.price)}</span></div>
+        <div class="list-price">${won(p.list)}</div>
+      </div>
+    </a>
+  `).join('');
+}
+renderDiscountGrid();
+renderRecGrid();
+
+// ---------- Filter tabs ----------
+document.getElementById('filterTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.filter-tab');
+  if(!btn) return;
+  document.querySelectorAll('.filter-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const f = btn.dataset.filter;
+  document.querySelectorAll('.rec-card').forEach(card=>{
+    card.classList.toggle('show', f==='all' || card.dataset.cat===f);
+  });
+});
+
+// ---------- Search overlay ----------
+const searchOverlay = document.getElementById('searchOverlay');
+function openSearch(){ searchOverlay.classList.add('open'); }
+function closeSearch(){ searchOverlay.classList.remove('open'); }
+document.getElementById('searchOpenBtn').addEventListener('click', openSearch);
+document.getElementById('searchCloseBtn').addEventListener('click', closeSearch);
+document.getElementById('mobileSearchBtn').addEventListener('click', (e)=>{e.preventDefault(); openSearch();});
+searchOverlay.addEventListener('click', (e)=>{ if(e.target===searchOverlay) closeSearch(); });
+
+// ---------- Mobile drawer ----------
+const drawer = document.getElementById('drawer');
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+function openDrawer(){ drawer.classList.add('open'); drawerBackdrop.classList.add('open'); }
+function closeDrawer(){ drawer.classList.remove('open'); drawerBackdrop.classList.remove('open'); }
+document.getElementById('menuOpenBtn').addEventListener('click', openDrawer);
+document.getElementById('drawerCloseBtn').addEventListener('click', closeDrawer);
+drawerBackdrop.addEventListener('click', closeDrawer);
+document.querySelectorAll('.drawer a').forEach(a=>a.addEventListener('click', closeDrawer));
+</script>
+
+</body>
+</html>

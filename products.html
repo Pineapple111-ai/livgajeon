@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>전체상품 | 리브가전</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
+    --text:#171717; --gray:#E9EBEF; --white:#FFFFFF; --muted:#7C8398;
+    --radius:3px; --maxw:1240px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Pretendard','Noto Sans KR',sans-serif; color:var(--text); background:var(--white); line-height:1.5;}
+  img,svg{display:block; max-width:100%;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  ul{list-style:none;}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px;}
+
+  header.site-header{position:sticky; top:0; z-index:100; background:rgba(255,255,255,0.96); backdrop-filter:blur(6px); border-bottom:1px solid var(--gray);}
+  .header-inner{max-width:var(--maxw); margin:0 auto; padding:0 24px; height:72px; display:flex; align-items:center; justify-content:space-between; gap:32px;}
+  .logo{font-size:22px; font-weight:800; letter-spacing:-0.03em; color:var(--main); flex-shrink:0;}
+  .logo span{color:var(--point);}
+  nav.main-nav ul{display:flex; gap:32px;}
+  nav.main-nav a{font-size:15px; font-weight:500;}
+  nav.main-nav a.discount{color:var(--point); font-weight:700;}
+  .header-actions{display:flex; align-items:center; gap:14px; flex-shrink:0;}
+  .icon-btn{display:flex; align-items:center; justify-content:center; width:36px; height:36px; color:var(--main);}
+  .icon-btn svg{width:20px; height:20px;}
+
+  .breadcrumb{font-size:13px; color:var(--muted); padding:20px 0 0;}
+  .breadcrumb a{color:var(--muted);}
+  .breadcrumb span.current{color:var(--text); font-weight:600;}
+
+  .page-head{padding:16px 0 28px; border-bottom:1px solid var(--gray); margin-bottom:28px;}
+  .page-head h1{font-size:26px; font-weight:800;}
+  .page-head p{font-size:14px; color:var(--muted); margin-top:6px;}
+
+  .listing{display:grid; grid-template-columns:240px 1fr; gap:36px; padding-bottom:80px;}
+
+  /* Sidebar filters */
+  .filter-box{border-bottom:1px solid var(--gray); padding-bottom:20px; margin-bottom:20px;}
+  .filter-box h3{font-size:14px; font-weight:700; margin-bottom:14px;}
+  .filter-box label{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--sub); margin-bottom:10px; cursor:pointer;}
+  .filter-box input[type=checkbox]{accent-color:var(--main); width:15px; height:15px;}
+  .price-inputs{display:flex; align-items:center; gap:8px;}
+  .price-inputs input{width:100%; padding:8px 10px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-family:inherit;}
+  .filter-apply{width:100%; padding:10px; background:var(--main); color:var(--white); border-radius:var(--radius); font-size:13px; font-weight:600; margin-top:6px;}
+  .filter-reset{display:block; text-align:center; font-size:12px; color:var(--muted); margin-top:10px; text-decoration:underline;}
+
+  /* Toolbar */
+  .toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+  .result-count{font-size:14px; color:var(--muted);}
+  .result-count b{color:var(--text);}
+  .sort-tabs{display:flex; gap:16px;}
+  .sort-tabs button{font-size:13px; color:var(--muted); font-weight:500;}
+  .sort-tabs button.active{color:var(--main); font-weight:700;}
+
+  .product-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
+  .product-card{border:1px solid var(--gray); border-radius:var(--radius); overflow:hidden; background:var(--white); position:relative;}
+  .product-thumb{aspect-ratio:4/3; background:var(--bg); display:flex; align-items:center; justify-content:center; position:relative;}
+  .product-thumb svg{width:40%; height:40%; color:var(--sub);}
+  .wish-btn{position:absolute; top:12px; right:12px; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center;}
+  .wish-btn svg{width:16px; height:16px; color:var(--main);}
+  .wish-btn.active svg{color:var(--point); fill:var(--point);}
+  .discount-flag{position:absolute; top:12px; left:12px; background:var(--main); color:var(--white); font-size:12px; font-weight:700; padding:4px 9px; border-radius:2px;}
+  .soldout-flag{position:absolute; inset:0; background:rgba(255,255,255,0.7); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:var(--muted);}
+  .product-info{padding:16px}
+  .brand{font-size:12px; color:var(--muted); font-weight:600; margin-bottom:6px;}
+  .product-name{font-size:15px; font-weight:600; margin-bottom:8px; line-height:1.4;}
+  .rating-row{display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); margin-bottom:8px;}
+  .rating-row .star{color:var(--main);}
+  .price-row{display:flex; align-items:baseline; gap:8px;}
+  .rate{color:var(--point); font-weight:800; font-size:16px;}
+  .final-price{font-size:18px; font-weight:800;}
+  .list-price{font-size:13px; color:var(--muted); text-decoration:line-through; margin-top:2px;}
+
+  .load-more{display:block; margin:40px auto 0; padding:14px 40px; border:1px solid var(--main); color:var(--main); font-weight:600; border-radius:var(--radius); font-size:14px;}
+
+  @media (max-width:900px){
+    .listing{grid-template-columns:1fr;}
+    .filter-sidebar{display:none;}
+    .filter-sidebar.open{display:block;}
+    .product-grid{grid-template-columns:repeat(2,1fr);}
+    nav.main-nav{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="logo">리브<span>가전</span></a>
+    <nav class="main-nav">
+      <ul>
+        <li><a href="products.html">전체 카테고리</a></li>
+        <li><a href="products.html?cat=fridge">냉장고</a></li>
+        <li><a href="products.html?cat=laundry">세탁/건조</a></li>
+        <li><a href="products.html?cat=tv">TV</a></li>
+        <li><a href="products.html?cat=kitchen">주방가전</a></li>
+        <li><a href="products.html?cat=living">생활가전</a></li>
+        <li><a href="products.html?discount=1" class="discount">할인상품</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></button>
+      <button class="icon-btn" aria-label="장바구니" onclick="location.href='cart.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h2l2 11h10l2-8H7"/><circle cx="10" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/></svg></button>
+      <button class="icon-btn" aria-label="마이페이지" onclick="location.href='mypage.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-5.6 7-5.6S17.8 16 19 20"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">홈</a> / <span class="current">전체상품</span></div>
+  <div class="page-head">
+    <h1>전체상품</h1>
+    <p id="resultSummary">삼성·LG 프리미엄 가전을 한 곳에서 만나보세요.</p>
+  </div>
+
+  <div class="listing">
+    <aside class="filter-sidebar">
+      <div class="filter-box">
+        <h3>카테고리</h3>
+        <label><input type="checkbox" name="cat" value="fridge"> 냉장고</label>
+        <label><input type="checkbox" name="cat" value="fridge-kimchi"> 김치냉장고</label>
+        <label><input type="checkbox" name="cat" value="laundry"> 세탁/건조</label>
+        <label><input type="checkbox" name="cat" value="tv"> TV</label>
+        <label><input type="checkbox" name="cat" value="kitchen"> 주방가전</label>
+        <label><input type="checkbox" name="cat" value="living"> 생활가전</label>
+        <label><input type="checkbox" name="cat" value="aircon"> 에어컨</label>
+      </div>
+      <div class="filter-box">
+        <h3>브랜드</h3>
+        <label><input type="checkbox" name="brand" value="samsung"> 삼성전자</label>
+        <label><input type="checkbox" name="brand" value="lg"> LG전자</label>
+      </div>
+      <div class="filter-box">
+        <h3>가격</h3>
+        <div class="price-inputs">
+          <input type="text" placeholder="최소" inputmode="numeric">
+          <span>–</span>
+          <input type="text" placeholder="최대" inputmode="numeric">
+        </div>
+        <button class="filter-apply">가격 적용</button>
+      </div>
+      <div class="filter-box" style="border-bottom:none;">
+        <h3>할인율</h3>
+        <label><input type="checkbox"> 30% 이상</label>
+        <label><input type="checkbox"> 40% 이상</label>
+      </div>
+      <a class="filter-reset" href="products.html">필터 초기화</a>
+    </aside>
+
+    <div class="listing-main">
+      <div class="toolbar">
+        <div class="result-count">총 <b id="countNum">0</b>개 상품</div>
+        <div class="sort-tabs" id="sortTabs">
+          <button class="active" data-sort="popular">인기순</button>
+          <button data-sort="low">낮은 가격순</button>
+          <button data-sort="high">높은 가격순</button>
+          <button data-sort="new">신상품순</button>
+        </div>
+      </div>
+      <div class="product-grid" id="productGrid"></div>
+      <button class="load-more" id="loadMoreBtn">더보기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const fridgeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="8" y1="5" x2="8" y2="7"/><line x1="8" y1="13" x2="8" y2="15"/></svg>`;
+const laundryIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="2"/></svg>`;
+const tvIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
+const kitchenIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`;
+const livingIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
+
+const products = [
+  {id:1, brand:'삼성전자', name:'BESPOKE 냉장고 4도어 875L', list:3299000, price:1814000, rate:45, icon:fridgeIcon, cat:'fridge', rating:4.8, reviews:214, soldout:false},
+  {id:2, brand:'LG전자', name:'오브제컬렉션 세탁건조기 21kg', list:2890000, price:1908000, rate:34, icon:laundryIcon, cat:'laundry', rating:4.6, reviews:98, soldout:false},
+  {id:3, brand:'삼성전자', name:'Neo QLED 4K TV 65형', list:3190000, price:1975000, rate:38, icon:tvIcon, cat:'tv', rating:4.8, reviews:176, soldout:false},
+  {id:4, brand:'LG전자', name:'퓨리케어 공기청정기 360°', list:890000, price:623000, rate:30, icon:livingIcon, cat:'living', rating:4.5, reviews:60, soldout:false},
+  {id:5, brand:'삼성전자', name:'BESPOKE 김치냉장고 4도어', list:2190000, price:1533000, rate:30, icon:fridgeIcon, cat:'fridge', rating:4.8, reviews:214, soldout:false},
+  {id:6, brand:'LG전자', name:'오브제컬렉션 냉장고 4도어', list:3450000, price:2415000, rate:30, icon:fridgeIcon, cat:'fridge', rating:4.7, reviews:132, soldout:false},
+  {id:7, brand:'삼성전자', name:'BESPOKE 세탁기 24kg', list:1690000, price:1183000, rate:30, icon:laundryIcon, cat:'laundry', rating:4.9, reviews:301, soldout:false},
+  {id:8, brand:'LG전자', name:'트롬 건조기 히트펌프 21kg', list:1590000, price:1113000, rate:30, icon:laundryIcon, cat:'laundry', rating:4.6, reviews:98, soldout:true},
+  {id:9, brand:'삼성전자', name:'OLED TV 55형', list:2390000, price:1673000, rate:30, icon:tvIcon, cat:'tv', rating:4.8, reviews:176, soldout:false},
+  {id:10, brand:'LG전자', name:'울트라HD 스마트 TV 75형', list:2790000, price:1953000, rate:30, icon:tvIcon, cat:'tv', rating:4.5, reviews:87, soldout:false},
+  {id:11, brand:'삼성전자', name:'비스포크 광파오븐', list:590000, price:413000, rate:30, icon:kitchenIcon, cat:'kitchen', rating:4.7, reviews:64, soldout:false},
+  {id:12, brand:'LG전자', name:'디오스 식기세척기 12인용', list:1290000, price:903000, rate:30, icon:kitchenIcon, cat:'kitchen', rating:4.6, reviews:120, soldout:false},
+];
+
+function won(n){return n.toLocaleString('ko-KR')+'원';}
+
+function cardHTML(p){
+  return `
+    <a class="product-card" href="product-detail.html?id=${p.id}">
+      <div class="product-thumb">
+        <span class="discount-flag">${p.rate}% OFF</span>
+        <button class="wish-btn" aria-label="찜하기" onclick="event.preventDefault(); this.classList.toggle('active')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.6-9.3-9C1.2 7.8 3 4.5 6.5 4.5c2 0 3.3 1 4 2.2.7-1.2 2-2.2 4-2.2 3.5 0 5.3 3.3 3.8 6.5C19 15.4 12 20 12 20z"/></svg>
+        </button>
+        ${p.icon}
+        ${p.soldout ? '<div class="soldout-flag">품절</div>' : ''}
+      </div>
+      <div class="product-info">
+        <div class="brand">${p.brand}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="rating-row"><span class="star">★</span>${p.rating} (${p.reviews})</div>
+        <div class="price-row"><span class="rate">${p.rate}%</span><span class="final-price">${won(p.price)}</span></div>
+        <div class="list-price">${won(p.list)}</div>
+      </div>
+    </a>
+  `;
+}
+
+let currentSort = 'popular';
+function getFilteredCat(){
+  const params = new URLSearchParams(location.search);
+  return params.get('cat');
+}
+
+function render(){
+  let list = [...products];
+  const cat = getFilteredCat();
+  if(cat) list = list.filter(p=>p.cat===cat);
+
+  if(currentSort==='low') list.sort((a,b)=>a.price-b.price);
+  else if(currentSort==='high') list.sort((a,b)=>b.price-a.price);
+  else if(currentSort==='new') list.sort((a,b)=>b.id-a.id);
+  else list.sort((a,b)=>b.reviews-a.reviews);
+
+  document.getElementById('productGrid').innerHTML = list.map(cardHTML).join('');
+  document.getElementById('countNum').textContent = list.length;
+}
+render();
+
+document.getElementById('sortTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#sortTabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSort = btn.dataset.sort;
+  render();
+});
+
+document.getElementById('loadMoreBtn').addEventListener('click', ()=>{
+  alert('더 이상 표시할 상품이 없습니다. (데모: 실제 서비스에서는 다음 페이지 상품을 불러옵니다)');
+});
+</script>
+</body>
+</html>

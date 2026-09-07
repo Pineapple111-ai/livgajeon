@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카테고리관리 | 리브가전 관리자</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
+    --text:#171717; --gray:#E9EBEF; --white:#FFFFFF; --muted:#7C8398;
+    --radius:3px; --sidebar-w:230px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Pretendard','Noto Sans KR',sans-serif; color:var(--text); background:var(--bg); line-height:1.5;}
+  img,svg{display:block; max-width:100%;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+
+  .admin-shell{display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh;}
+  .sidebar{background:var(--main); color:var(--white); padding:24px 0; position:sticky; top:0; height:100vh; overflow-y:auto;}
+  .sidebar-logo{font-size:18px; font-weight:800; padding:0 24px 24px; border-bottom:1px solid rgba(255,255,255,0.12); margin-bottom:12px;}
+  .sidebar-logo span{color:#F0A8A8;}
+  .sidebar-logo small{display:block; font-size:11px; font-weight:500; color:#9AA1B4; margin-top:4px;}
+  .nav-group{margin-bottom:6px;}
+  .nav-group-label{font-size:11px; color:#7C839E; padding:14px 24px 6px; letter-spacing:0.02em;}
+  .nav-item{display:flex; align-items:center; gap:10px; padding:11px 24px; font-size:13.5px; font-weight:500; color:#C7CCDA;}
+  .nav-item svg{width:17px; height:17px; flex-shrink:0;}
+  .nav-item.active{background:rgba(255,255,255,0.08); color:var(--white); font-weight:700; border-right:3px solid #F0A8A8;}
+  .nav-item:hover{color:var(--white);}
+
+  .main{padding:28px 32px 60px;}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;}
+  .topbar h1{font-size:22px; font-weight:800;}
+  .btn-add{padding:11px 20px; background:var(--main); color:var(--white); border-radius:var(--radius); font-size:13.5px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .btn-add svg{width:16px; height:16px;}
+
+  .layout{display:grid; grid-template-columns:1fr 340px; gap:24px; align-items:start;}
+
+  .table-card{background:var(--white); border:1px solid var(--gray); border-radius:var(--radius); overflow:hidden;}
+  table{width:100%; border-collapse:collapse;}
+  th, td{text-align:left; padding:12px 14px; font-size:13px; border-bottom:1px solid var(--gray);}
+  th{background:var(--bg); color:var(--muted); font-weight:600; font-size:12px;}
+  tr:last-child td{border-bottom:none;}
+  tr.sub-row td:first-child{padding-left:34px; color:var(--sub);}
+  tr.sub-row td:first-child::before{content:'└'; margin-right:6px; color:var(--muted);}
+  .cat-name{font-weight:700;}
+  .order-btns{display:inline-flex; gap:4px; margin-left:8px;}
+  .order-btns button{width:22px; height:22px; border:1px solid var(--gray); border-radius:2px; font-size:11px; color:var(--muted);}
+  .toggle{display:inline-flex; align-items:center; gap:6px; cursor:pointer;}
+  .toggle-track{width:36px; height:20px; border-radius:99px; background:var(--gray); position:relative; transition:background .15s ease;}
+  .toggle-track::after{content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--white); transition:left .15s ease;}
+  .toggle.on .toggle-track{background:var(--main);}
+  .toggle.on .toggle-track::after{left:18px;}
+  .row-btn{padding:6px 11px; border:1px solid var(--gray); border-radius:var(--radius); font-size:11.5px; font-weight:600; color:var(--sub); margin-right:4px;}
+  .row-btn.danger{color:var(--point); border-color:#F4D4D4;}
+  .prod-count{font-size:12px; color:var(--muted);}
+
+  /* Form panel */
+  .form-card{background:var(--white); border:1px solid var(--gray); border-radius:var(--radius); padding:22px; position:sticky; top:24px;}
+  .form-card h2{font-size:15px; font-weight:800; margin-bottom:18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12.5px; font-weight:600; color:var(--sub); margin-bottom:7px;}
+  .field input, .field select{width:100%; padding:10px 12px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13.5px; font-family:inherit;}
+  .toggle-field{display:flex; align-items:center; justify-content:space-between; padding:10px 0;}
+  .toggle-field label{font-size:13px; font-weight:600; color:var(--sub); margin-bottom:0;}
+  .form-actions{display:flex; gap:8px; margin-top:18px;}
+  .btn-save{flex:1; padding:12px; background:var(--main); color:var(--white); border-radius:var(--radius); font-size:13.5px; font-weight:700;}
+  .btn-reset{padding:12px 18px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13.5px; font-weight:600; color:var(--sub);}
+  .hint{font-size:11.5px; color:var(--muted); margin-top:-8px; margin-bottom:14px;}
+
+  @media (max-width:900px){
+    .admin-shell{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .layout{grid-template-columns:1fr;}
+    .form-card{position:static;}
+  }
+</style>
+</head>
+<body>
+
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo">리브<span>가전</span><small>관리자 시스템</small></div>
+    <div class="nav-group">
+      <a class="nav-item" href="admin-dashboard.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="12" width="8" height="9" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>
+        대시보드
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">상품</div>
+      <a class="nav-item" href="admin-products.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>
+        상품관리
+      </a>
+      <a class="nav-item active" href="admin-category.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        카테고리관리
+      </a>
+      <a class="nav-item" href="admin-inventory.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        재고관리
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">주문/배송</div>
+      <a class="nav-item" href="admin-orders.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h2l2 11h10l2-8H7"/></svg>
+        주문관리
+      </a>
+      <a class="nav-item" href="admin-orders.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="7" width="14" height="10" rx="1.5"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="1.6"/><circle cx="18" cy="19" r="1.6"/></svg>
+        배송관리
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">고객</div>
+      <a class="nav-item" href="admin-customers.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-5.6 7-5.6S17.8 16 19 20"/></svg>
+        회원관리
+      </a>
+      <a class="nav-item" href="admin-customers.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l1.6 4.9H19l-4.2 3 1.6 4.9-4.4-3.1-4.4 3.1 1.6-4.9L5 7.9h5.4z"/></svg>
+        리뷰관리
+      </a>
+      <a class="nav-item" href="admin-customers.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h16v12H8l-4 4z"/></svg>
+        문의관리
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">프로모션</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12l9-9 9 9-9 9z"/><circle cx="12" cy="12" r="2"/></svg>
+        쿠폰관리
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="1.5"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+        메인배너관리
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1>카테고리관리</h1>
+      <button class="btn-add" id="openAddBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        카테고리 추가
+      </button>
+    </div>
+
+    <div class="layout">
+      <div class="table-card">
+        <table>
+          <thead><tr><th>카테고리명</th><th>상품수</th><th>노출순서</th><th>노출여부</th><th></th></tr></thead>
+          <tbody id="catTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="form-card">
+        <h2 id="formTitle">카테고리 추가</h2>
+        <div class="field">
+          <label>상위 카테고리</label>
+          <select id="f_parent">
+            <option value="">없음 (대분류로 등록)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>카테고리명</label>
+          <input type="text" id="f_name" placeholder="예) 김치냉장고">
+        </div>
+        <div class="field">
+          <label>노출순서</label>
+          <input type="text" id="f_order" inputmode="numeric" placeholder="숫자가 작을수록 먼저 노출">
+        </div>
+        <div class="hint">헤더/홈페이지 카테고리 메뉴에 노출되는 순서입니다.</div>
+        <div class="toggle-field">
+          <label>노출 여부</label>
+          <div class="toggle on" id="f_visible"><div class="toggle-track"></div></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-reset" id="resetFormBtn">초기화</button>
+          <button class="btn-save" id="saveCatBtn">저장하기</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+let editingId = null;
+let categories = [
+  {id:1, name:'냉장고', parent:null, order:1, visible:true, count:14},
+  {id:2, name:'김치냉장고', parent:1, order:1, visible:true, count:5},
+  {id:3, name:'세탁/건조', parent:null, order:2, visible:true, count:11},
+  {id:4, name:'TV', parent:null, order:3, visible:true, count:9},
+  {id:5, name:'주방가전', parent:null, order:4, visible:true, count:8},
+  {id:6, name:'생활가전', parent:null, order:5, visible:true, count:12},
+  {id:7, name:'에어컨', parent:null, order:6, visible:true, count:6},
+  {id:8, name:'청소/공기관리', parent:null, order:7, visible:false, count:4},
+];
+let nextId = 9;
+
+function refreshParentOptions(excludeId=null){
+  const sel = document.getElementById('f_parent');
+  const parents = categories.filter(c=>c.parent===null && c.id!==excludeId);
+  sel.innerHTML = '<option value="">없음 (대분류로 등록)</option>' +
+    parents.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+function renderCategories(){
+  refreshParentOptions();
+  const top = categories.filter(c=>c.parent===null).sort((a,b)=>a.order-b.order);
+  let rows = '';
+  top.forEach(p=>{
+    rows += `
+      <tr>
+        <td class="cat-name">${p.name}</td>
+        <td class="prod-count">${p.count}개</td>
+        <td>${p.order}
+          <span class="order-btns">
+            <button onclick="moveOrder(${p.id},-1)">▲</button>
+            <button onclick="moveOrder(${p.id},1)">▼</button>
+          </span>
+        </td>
+        <td><div class="toggle ${p.visible?'on':''}" onclick="toggleVisible(${p.id})"><div class="toggle-track"></div></div></td>
+        <td>
+          <button class="row-btn" onclick="editCategory(${p.id})">수정</button>
+          <button class="row-btn danger" onclick="deleteCategory(${p.id})">삭제</button>
+        </td>
+      </tr>
+    `;
+    const children = categories.filter(c=>c.parent===p.id).sort((a,b)=>a.order-b.order);
+    children.forEach(c=>{
+      rows += `
+        <tr class="sub-row">
+          <td>${c.name}</td>
+          <td class="prod-count">${c.count}개</td>
+          <td>${c.order}
+            <span class="order-btns">
+              <button onclick="moveOrder(${c.id},-1)">▲</button>
+              <button onclick="moveOrder(${c.id},1)">▼</button>
+            </span>
+          </td>
+          <td><div class="toggle ${c.visible?'on':''}" onclick="toggleVisible(${c.id})"><div class="toggle-track"></div></div></td>
+          <td>
+            <button class="row-btn" onclick="editCategory(${c.id})">수정</button>
+            <button class="row-btn danger" onclick="deleteCategory(${c.id})">삭제</button>
+          </td>
+        </tr>
+      `;
+    });
+  });
+  document.getElementById('catTbody').innerHTML = rows;
+}
+renderCategories();
+
+function toggleVisible(id){
+  const c = categories.find(x=>x.id===id);
+  c.visible = !c.visible;
+  renderCategories();
+}
+
+function moveOrder(id, dir){
+  const c = categories.find(x=>x.id===id);
+  const siblings = categories.filter(x=>x.parent===c.parent).sort((a,b)=>a.order-b.order);
+  const idx = siblings.findIndex(x=>x.id===id);
+  const swapIdx = idx+dir;
+  if(swapIdx<0 || swapIdx>=siblings.length) return;
+  const tmp = c.order;
+  c.order = siblings[swapIdx].order;
+  siblings[swapIdx].order = tmp;
+  renderCategories();
+}
+
+function editCategory(id){
+  const c = categories.find(x=>x.id===id);
+  editingId = id;
+  document.getElementById('formTitle').textContent = '카테고리 수정';
+  refreshParentOptions(id);
+  document.getElementById('f_parent').value = c.parent || '';
+  document.getElementById('f_name').value = c.name;
+  document.getElementById('f_order').value = c.order;
+  document.getElementById('f_visible').classList.toggle('on', c.visible);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteCategory(id){
+  const hasChildren = categories.some(c=>c.parent===id);
+  if(hasChildren){ alert('하위 카테고리가 있는 카테고리는 삭제할 수 없습니다. 먼저 하위 카테고리를 삭제해주세요.'); return; }
+  if(!confirm('선택한 카테고리를 삭제하시겠습니까?')) return;
+  categories = categories.filter(c=>c.id!==id);
+  renderCategories();
+}
+
+document.getElementById('f_visible').addEventListener('click', function(){
+  this.classList.toggle('on');
+});
+
+document.getElementById('resetFormBtn').addEventListener('click', resetForm);
+function resetForm(){
+  editingId = null;
+  document.getElementById('formTitle').textContent = '카테고리 추가';
+  refreshParentOptions();
+  document.getElementById('f_parent').value = '';
+  document.getElementById('f_name').value = '';
+  document.getElementById('f_order').value = '';
+  document.getElementById('f_visible').classList.add('on');
+}
+
+document.getElementById('openAddBtn').addEventListener('click', ()=>{
+  resetForm();
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+document.getElementById('saveCatBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('f_name').value.trim();
+  if(!name){ alert('카테고리명을 입력해주세요.'); return; }
+  const parent = document.getElementById('f_parent').value ? parseInt(document.getElementById('f_parent').value) : null;
+  const order = parseInt(document.getElementById('f_order').value) || 99;
+  const visible = document.getElementById('f_visible').classList.contains('on');
+
+  if(editingId){
+    const c = categories.find(x=>x.id===editingId);
+    c.name = name; c.parent = parent; c.order = order; c.visible = visible;
+  } else {
+    categories.push({id:nextId++, name, parent, order, visible, count:0});
+  }
+  renderCategories();
+  resetForm();
+  alert('카테고리가 저장되었습니다.');
+});
+</script>
+</body>
+</html>

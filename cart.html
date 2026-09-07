@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>장바구니 | 리브가전</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
+    --text:#171717; --gray:#E9EBEF; --white:#FFFFFF; --muted:#7C8398;
+    --radius:3px; --maxw:1080px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Pretendard','Noto Sans KR',sans-serif; color:var(--text); background:var(--white); line-height:1.5;}
+  img,svg{display:block; max-width:100%;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px;}
+
+  header.site-header{position:sticky; top:0; z-index:100; background:rgba(255,255,255,0.96); backdrop-filter:blur(6px); border-bottom:1px solid var(--gray);}
+  .header-inner{max-width:1240px; margin:0 auto; padding:0 24px; height:72px; display:flex; align-items:center; justify-content:space-between;}
+  .logo{font-size:22px; font-weight:800; letter-spacing:-0.03em; color:var(--main);}
+  .logo span{color:var(--point);}
+  .icon-btn{display:flex; align-items:center; justify-content:center; width:36px; height:36px; color:var(--main);}
+  .icon-btn svg{width:20px; height:20px;}
+
+  .page-head{padding:32px 0 24px;}
+  .page-head h1{font-size:26px; font-weight:800;}
+  .page-head p{font-size:14px; color:var(--muted); margin-top:6px;}
+
+  .cart-layout{display:grid; grid-template-columns:1fr 320px; gap:32px; align-items:start; padding-bottom:80px;}
+
+  .select-bar{display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--main);}
+  .select-bar label{display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;}
+  .select-bar input[type=checkbox]{width:16px; height:16px; accent-color:var(--main);}
+  .select-bar .delete-selected{font-size:13px; color:var(--muted); text-decoration:underline;}
+
+  .cart-item{display:grid; grid-template-columns:auto 96px 1fr auto; gap:16px; align-items:center; padding:20px 0; border-bottom:1px solid var(--gray);}
+  .cart-item input[type=checkbox]{width:16px; height:16px; accent-color:var(--main); margin-top:4px;}
+  .item-thumb{width:96px; height:96px; background:var(--bg); border:1px solid var(--gray); border-radius:var(--radius); display:flex; align-items:center; justify-content:center;}
+  .item-thumb svg{width:50%; height:50%; color:var(--sub);}
+  .item-brand{font-size:12px; color:var(--muted); font-weight:600; margin-bottom:4px;}
+  .item-name{font-size:15px; font-weight:600; margin-bottom:6px;}
+  .item-option{font-size:12px; color:var(--muted); margin-bottom:10px;}
+  .item-qty{display:inline-flex; align-items:center; border:1px solid var(--gray); border-radius:var(--radius);}
+  .item-qty button{width:28px; height:28px; font-size:14px;}
+  .item-qty span{width:32px; text-align:center; font-size:13px; font-weight:600;}
+  .item-right{text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:10px;}
+  .item-price .list{font-size:12px; color:var(--muted); text-decoration:line-through;}
+  .item-price .final{font-size:17px; font-weight:800;}
+  .item-remove{font-size:12px; color:var(--muted); text-decoration:underline;}
+
+  .empty-cart{padding:80px 0; text-align:center; color:var(--muted);}
+  .empty-cart p{margin-bottom:20px; font-size:15px;}
+
+  /* Summary */
+  .summary-box{border:1px solid var(--gray); border-radius:var(--radius); padding:24px; position:sticky; top:96px;}
+  .summary-box h3{font-size:16px; font-weight:800; margin-bottom:18px;}
+  .summary-row{display:flex; justify-content:space-between; font-size:14px; color:var(--sub); margin-bottom:12px;}
+  .summary-row.discount span:last-child{color:var(--point); font-weight:600;}
+  .summary-divider{border-top:1px solid var(--gray); margin:14px 0;}
+  .summary-total{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;}
+  .summary-total span:first-child{font-size:15px; font-weight:700;}
+  .summary-total span:last-child{font-size:22px; font-weight:800;}
+  .order-btn{display:block; width:100%; text-align:center; padding:16px; background:var(--main); color:var(--white); border-radius:var(--radius); font-size:15px; font-weight:700;}
+  .order-btn:disabled, .order-btn.disabled{background:var(--gray); color:var(--muted); pointer-events:none;}
+  .continue-link{display:block; text-align:center; font-size:13px; color:var(--muted); margin-top:14px; text-decoration:underline;}
+
+  @media (max-width:800px){
+    .cart-layout{grid-template-columns:1fr;}
+    .summary-box{position:static;}
+    .cart-item{grid-template-columns:auto 72px 1fr; row-gap:10px;}
+    .item-right{grid-column:2/4; flex-direction:row; align-items:center; justify-content:space-between; width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="logo">리브<span>가전</span></a>
+    <div style="display:flex; gap:14px;">
+      <button class="icon-btn" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></button>
+      <button class="icon-btn" aria-label="마이페이지" onclick="location.href='mypage.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-5.6 7-5.6S17.8 16 19 20"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <h1>장바구니</h1>
+    <p><span id="itemCount">0</span>개 상품이 담겨 있습니다.</p>
+  </div>
+
+  <div class="cart-layout">
+    <div>
+      <div class="select-bar">
+        <label><input type="checkbox" id="selectAll" checked> 전체선택 (<span id="selectedCount">0</span>/<span id="totalCount">0</span>)</label>
+        <button class="delete-selected" id="deleteSelected">선택삭제</button>
+      </div>
+      <div id="cartList"></div>
+      <div class="empty-cart" id="emptyState" style="display:none;">
+        <p>장바구니에 담긴 상품이 없습니다.</p>
+        <a href="products.html" class="order-btn" style="display:inline-block; padding:14px 32px;">쇼핑 계속하기</a>
+      </div>
+    </div>
+
+    <div class="summary-box">
+      <h3>결제 예상금액</h3>
+      <div class="summary-row"><span>상품금액</span><span id="sumList">0원</span></div>
+      <div class="summary-row discount"><span>할인금액</span><span id="sumDiscount">-0원</span></div>
+      <div class="summary-row"><span>배송비</span><span id="sumShip">무료</span></div>
+      <div class="summary-divider"></div>
+      <div class="summary-total"><span>최종 결제금액</span><span id="sumFinal">0원</span></div>
+      <a href="#" class="order-btn" id="orderBtn">선택상품 주문하기</a>
+      <a href="products.html" class="continue-link">쇼핑 계속하기</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const fridgeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="8" y1="5" x2="8" y2="7"/><line x1="8" y1="13" x2="8" y2="15"/></svg>`;
+const laundryIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="2"/></svg>`;
+const tvIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
+
+let cartItems = [
+  {id:1, brand:'삼성전자', name:'BESPOKE 냉장고 4도어 875L', option:'화이트 / 875L / 기본설치', icon:fridgeIcon, list:3299000, price:1814000, qty:1, checked:true},
+  {id:2, brand:'LG전자', name:'오브제컬렉션 세탁건조기 21kg', option:'베이지', icon:laundryIcon, list:2890000, price:1908000, qty:1, checked:true},
+  {id:3, brand:'삼성전자', name:'Neo QLED 4K TV 65형', option:'벽걸이 설치', icon:tvIcon, list:3190000, price:1975000, qty:2, checked:false},
+];
+
+function won(n){ return n.toLocaleString('ko-KR')+'원'; }
+
+function renderCart(){
+  const list = document.getElementById('cartList');
+  const empty = document.getElementById('emptyState');
+  if(cartItems.length===0){
+    list.innerHTML='';
+    empty.style.display='block';
+  } else {
+    empty.style.display='none';
+    list.innerHTML = cartItems.map(item=>`
+      <div class="cart-item" data-id="${item.id}">
+        <input type="checkbox" class="item-check" ${item.checked?'checked':''}>
+        <div class="item-thumb">${item.icon}</div>
+        <div>
+          <div class="item-brand">${item.brand}</div>
+          <div class="item-name">${item.name}</div>
+          <div class="item-option">옵션: ${item.option}</div>
+          <div class="item-qty">
+            <button class="qty-minus">−</button>
+            <span class="qty-val">${item.qty}</span>
+            <button class="qty-plus">+</button>
+          </div>
+        </div>
+        <div class="item-right">
+          <div class="item-price">
+            <div class="list">${won(item.list*item.qty)}</div>
+            <div class="final">${won(item.price*item.qty)}</div>
+          </div>
+          <button class="item-remove">삭제</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  updateSummary();
+}
+
+function updateSummary(){
+  document.getElementById('itemCount').textContent = cartItems.length;
+  document.getElementById('totalCount').textContent = cartItems.length;
+  const selectedItems = cartItems.filter(i=>i.checked);
+  document.getElementById('selectedCount').textContent = selectedItems.length;
+  document.getElementById('selectAll').checked = cartItems.length>0 && selectedItems.length===cartItems.length;
+
+  const listSum = selectedItems.reduce((s,i)=>s+i.list*i.qty,0);
+  const finalSum = selectedItems.reduce((s,i)=>s+i.price*i.qty,0);
+  const discount = listSum - finalSum;
+
+  document.getElementById('sumList').textContent = won(listSum);
+  document.getElementById('sumDiscount').textContent = '-'+won(discount);
+  document.getElementById('sumFinal').textContent = won(finalSum);
+
+  const orderBtn = document.getElementById('orderBtn');
+  orderBtn.textContent = selectedItems.length>0 ? `선택상품 주문하기 (${selectedItems.length}개)` : '선택상품 주문하기';
+  orderBtn.classList.toggle('disabled', selectedItems.length===0);
+}
+
+document.getElementById('cartList').addEventListener('click', (e)=>{
+  const row = e.target.closest('.cart-item');
+  if(!row) return;
+  const id = parseInt(row.dataset.id);
+  const item = cartItems.find(i=>i.id===id);
+
+  if(e.target.classList.contains('item-check')){
+    item.checked = e.target.checked;
+    updateSummary();
+  } else if(e.target.classList.contains('qty-plus')){
+    item.qty++;
+    renderCart();
+  } else if(e.target.classList.contains('qty-minus')){
+    if(item.qty>1) item.qty--;
+    renderCart();
+  } else if(e.target.classList.contains('item-remove')){
+    cartItems = cartItems.filter(i=>i.id!==id);
+    renderCart();
+  }
+});
+
+document.getElementById('selectAll').addEventListener('change', (e)=>{
+  cartItems.forEach(i=>i.checked = e.target.checked);
+  renderCart();
+});
+
+document.getElementById('deleteSelected').addEventListener('click', ()=>{
+  cartItems = cartItems.filter(i=>!i.checked);
+  renderCart();
+});
+
+document.getElementById('orderBtn').addEventListener('click', (e)=>{
+  e.preventDefault();
+  const selected = cartItems.filter(i=>i.checked);
+  if(selected.length===0) return;
+  location.href = 'checkout.html';
+});
+
+renderCart();
+</script>
+</body>
+</html>

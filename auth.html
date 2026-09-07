@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로그인 / 회원가입 | 리브가전</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
+    --text:#171717; --gray:#E9EBEF; --white:#FFFFFF; --muted:#7C8398;
+    --radius:3px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Pretendard','Noto Sans KR',sans-serif; color:var(--text); background:var(--bg); line-height:1.5; min-height:100vh;}
+  img,svg{display:block; max-width:100%;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+
+  header.site-header{background:var(--white); border-bottom:1px solid var(--gray);}
+  .header-inner{max-width:1240px; margin:0 auto; padding:0 24px; height:72px; display:flex; align-items:center; justify-content:center;}
+  .logo{font-size:22px; font-weight:800; letter-spacing:-0.03em; color:var(--main);}
+  .logo span{color:var(--point);}
+
+  .auth-shell{max-width:420px; margin:0 auto; padding:56px 24px 80px;}
+
+  .auth-tabs{display:flex; border-bottom:1px solid var(--gray); margin-bottom:32px;}
+  .auth-tab{flex:1; text-align:center; padding:14px 0; font-size:16px; font-weight:700; color:var(--muted); border-bottom:2px solid transparent;}
+  .auth-tab.active{color:var(--main); border-color:var(--main);}
+
+  .auth-panel{display:none;}
+  .auth-panel.active{display:block;}
+
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; font-weight:600; color:var(--sub); margin-bottom:8px;}
+  .field input{
+    width:100%; padding:14px 14px; border:1px solid var(--gray); border-radius:var(--radius);
+    font-size:14px; font-family:inherit; background:var(--white);
+  }
+  .field input:focus{outline:none; border-color:var(--main);}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  .field-hint{font-size:12px; color:var(--muted); margin-top:6px;}
+  .field-error{font-size:12px; color:var(--point); margin-top:6px; display:none;}
+
+  .check-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;}
+  .check-row label{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--sub);}
+  .check-row input[type=checkbox]{width:15px; height:15px; accent-color:var(--main);}
+  .link-small{font-size:13px; color:var(--muted); text-decoration:underline;}
+
+  .btn-submit{
+    width:100%; padding:15px; background:var(--main); color:var(--white); font-size:15px; font-weight:700;
+    border-radius:var(--radius); margin-bottom:16px;
+  }
+  .helper-links{display:flex; justify-content:center; gap:14px; font-size:13px; color:var(--muted);}
+  .helper-links span{color:var(--gray);}
+
+  .divider-text{display:flex; align-items:center; gap:12px; margin:28px 0; font-size:12px; color:var(--muted);}
+  .divider-text::before, .divider-text::after{content:''; flex:1; height:1px; background:var(--gray);}
+
+  .sns-btn{
+    width:100%; padding:14px; border:1px solid var(--gray); border-radius:var(--radius); font-size:14px;
+    font-weight:600; color:var(--sub); margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .sns-btn svg{width:18px; height:18px;}
+
+  .agree-box{border:1px solid var(--gray); border-radius:var(--radius); padding:16px; margin-bottom:20px;}
+  .agree-box .agree-all{display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; padding-bottom:12px; border-bottom:1px solid var(--gray); margin-bottom:12px;}
+  .agree-box .agree-item{display:flex; align-items:center; justify-content:space-between; font-size:13px; color:var(--sub); margin-bottom:8px;}
+  .agree-box .agree-item label{display:flex; align-items:center; gap:8px;}
+  .agree-box input[type=checkbox]{width:15px; height:15px; accent-color:var(--main);}
+  .agree-box .agree-item a{font-size:12px; color:var(--muted); text-decoration:underline;}
+
+  .signup-success{display:none; text-align:center; padding:40px 0;}
+  .signup-success svg{width:56px; height:56px; color:var(--main); margin:0 auto 20px;}
+  .signup-success h2{font-size:20px; font-weight:800; margin-bottom:10px;}
+  .signup-success p{font-size:14px; color:var(--muted); margin-bottom:28px;}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="logo">리브<span>가전</span></a>
+  </div>
+</header>
+
+<div class="auth-shell">
+
+  <div id="authForms">
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">로그인</button>
+      <button class="auth-tab" data-tab="signup">회원가입</button>
+    </div>
+
+    <!-- 로그인 -->
+    <div class="auth-panel active" id="panel-login">
+      <form onsubmit="return handleLogin(event)">
+        <div class="field">
+          <label>아이디</label>
+          <input type="text" placeholder="아이디를 입력해주세요" required>
+        </div>
+        <div class="field">
+          <label>비밀번호</label>
+          <input type="password" placeholder="비밀번호를 입력해주세요" required>
+        </div>
+        <div class="check-row">
+          <label><input type="checkbox"> 로그인 유지</label>
+        </div>
+        <button type="submit" class="btn-submit">로그인</button>
+      </form>
+      <div class="helper-links">
+        <a href="#" onclick="return openHelper('id')">아이디 찾기</a><span>|</span>
+        <a href="#" onclick="return openHelper('pw')">비밀번호 찾기</a><span>|</span>
+        <a href="#" onclick="switchTab('signup')">회원가입</a>
+      </div>
+
+      <div class="divider-text">SNS 계정으로 로그인</div>
+      <button class="sns-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+        이메일로 로그인
+      </button>
+      <button class="sns-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
+        간편 로그인
+      </button>
+    </div>
+
+    <!-- 회원가입 -->
+    <div class="auth-panel" id="panel-signup">
+      <form onsubmit="return handleSignup(event)">
+        <div class="field">
+          <label>아이디</label>
+          <input type="text" placeholder="영문/숫자 4~16자" required>
+          <div class="field-hint">아이디는 가입 후 변경할 수 없습니다.</div>
+        </div>
+        <div class="field">
+          <label>비밀번호</label>
+          <input type="password" placeholder="영문, 숫자, 특수문자 포함 8자 이상" required>
+        </div>
+        <div class="field">
+          <label>비밀번호 확인</label>
+          <input type="password" placeholder="비밀번호를 다시 입력해주세요" required>
+        </div>
+        <div class="field">
+          <label>이름</label>
+          <input type="text" placeholder="이름을 입력해주세요" required>
+        </div>
+        <div class="field">
+          <label>휴대폰번호</label>
+          <input type="tel" placeholder="- 없이 숫자만 입력" required>
+        </div>
+        <div class="field">
+          <label>이메일</label>
+          <input type="email" placeholder="example@livgajeon.com" required>
+        </div>
+
+        <div class="agree-box">
+          <label class="agree-all"><input type="checkbox" id="agreeAll"> 전체 동의</label>
+          <div class="agree-item">
+            <label><input type="checkbox" class="agree-item-cb"> 이용약관 동의 (필수)</label>
+            <a href="#">보기</a>
+          </div>
+          <div class="agree-item">
+            <label><input type="checkbox" class="agree-item-cb"> 개인정보처리방침 동의 (필수)</label>
+            <a href="#">보기</a>
+          </div>
+          <div class="agree-item" style="margin-bottom:0;">
+            <label><input type="checkbox" class="agree-item-cb"> 혜택/할인 정보 수신 동의 (선택)</label>
+            <a href="#">보기</a>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit">회원가입</button>
+      </form>
+      <div class="helper-links">
+        이미 계정이 있으신가요? <a href="#" onclick="switchTab('login')">로그인</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 가입 완료 -->
+  <div class="signup-success" id="signupSuccess">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
+    <h2>회원가입이 완료되었습니다</h2>
+    <p>리브가전의 다양한 혜택을 지금 바로 만나보세요.</p>
+    <a href="index.html" class="btn-submit" style="display:block;">홈으로 가기</a>
+  </div>
+</div>
+
+<script>
+function switchTab(name){
+  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.auth-panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+name));
+}
+document.querySelectorAll('.auth-tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>switchTab(btn.dataset.tab));
+});
+
+function handleLogin(e){
+  e.preventDefault();
+  location.href = 'index.html';
+  return false;
+}
+
+document.getElementById('agreeAll').addEventListener('change', (e)=>{
+  document.querySelectorAll('.agree-item-cb').forEach(cb=>cb.checked = e.target.checked);
+});
+document.querySelectorAll('.agree-item-cb').forEach(cb=>{
+  cb.addEventListener('change', ()=>{
+    const all = [...document.querySelectorAll('.agree-item-cb')].every(c=>c.checked);
+    document.getElementById('agreeAll').checked = all;
+  });
+});
+
+function handleSignup(e){
+  e.preventDefault();
+  document.getElementById('authForms').style.display = 'none';
+  document.getElementById('signupSuccess').style.display = 'block';
+  return false;
+}
+
+function openHelper(type){
+  alert(type==='id' ? '아이디 찾기 화면입니다. (데모)' : '비밀번호 찾기 화면입니다. (데모)');
+  return false;
+}
+</script>
+</body>
+</html>

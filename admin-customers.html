@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>회원/리뷰/문의관리 | 리브가전 관리자</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
+    --text:#171717; --gray:#E9EBEF; --white:#FFFFFF; --muted:#7C8398;
+    --radius:3px; --sidebar-w:230px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Pretendard','Noto Sans KR',sans-serif; color:var(--text); background:var(--bg); line-height:1.5;}
+  img,svg{display:block; max-width:100%;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+
+  .admin-shell{display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh;}
+  .sidebar{background:var(--main); color:var(--white); padding:24px 0; position:sticky; top:0; height:100vh; overflow-y:auto;}
+  .sidebar-logo{font-size:18px; font-weight:800; padding:0 24px 24px; border-bottom:1px solid rgba(255,255,255,0.12); margin-bottom:12px;}
+  .sidebar-logo span{color:#F0A8A8;}
+  .sidebar-logo small{display:block; font-size:11px; font-weight:500; color:#9AA1B4; margin-top:4px;}
+  .nav-group{margin-bottom:6px;}
+  .nav-group-label{font-size:11px; color:#7C839E; padding:14px 24px 6px; letter-spacing:0.02em;}
+  .nav-item{display:flex; align-items:center; gap:10px; padding:11px 24px; font-size:13.5px; font-weight:500; color:#C7CCDA;}
+  .nav-item svg{width:17px; height:17px; flex-shrink:0;}
+  .nav-item.active{background:rgba(255,255,255,0.08); color:var(--white); font-weight:700; border-right:3px solid #F0A8A8;}
+  .nav-item:hover{color:var(--white);}
+
+  .main{padding:28px 32px 60px;}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+  .topbar h1{font-size:22px; font-weight:800;}
+
+  .top-tabs{display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--gray);}
+  .top-tab{padding:12px 20px; font-size:14px; font-weight:700; color:var(--muted); border-bottom:2px solid transparent;}
+  .top-tab.active{color:var(--main); border-color:var(--main);}
+
+  .view-panel{display:none;}
+  .view-panel.active{display:block;}
+
+  .filter-bar{background:var(--white); border:1px solid var(--gray); border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
+  .filter-bar input, .filter-bar select{padding:9px 12px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-family:inherit;}
+  .filter-bar input[type=text]{flex:1; min-width:200px;}
+  .sub-tabs{display:flex; gap:6px;}
+  .sub-tab{padding:8px 14px; font-size:12.5px; font-weight:600; color:var(--muted); border:1px solid var(--gray); border-radius:99px;}
+  .sub-tab.active{background:var(--main); color:var(--white); border-color:var(--main);}
+
+  .table-card{background:var(--white); border:1px solid var(--gray); border-radius:var(--radius); overflow-x:auto;}
+  table{width:100%; border-collapse:collapse;}
+  th, td{text-align:left; padding:13px 14px; font-size:13px; border-bottom:1px solid var(--gray); white-space:nowrap;}
+  th{background:var(--bg); color:var(--muted); font-weight:600; font-size:12px;}
+  tr:last-child td{border-bottom:none;}
+  .cell-wrap{white-space:normal; max-width:260px;}
+  .badge{font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px;}
+  .badge-blue{background:#EAF0FA; color:var(--sub);}
+  .badge-red{background:#FDEDED; color:var(--point);}
+  .badge-green{background:#EDF3EC; color:#2F7A45;}
+  .badge-gray{background:var(--gray); color:var(--muted);}
+  .row-btn{padding:6px 12px; border:1px solid var(--gray); border-radius:var(--radius); font-size:11.5px; font-weight:600; color:var(--sub); margin-right:4px;}
+  .row-btn.danger{color:var(--point); border-color:#F4D4D4;}
+  .stars-mini{color:var(--main); font-size:12px;}
+
+  /* Drawer (shared) */
+  .drawer-backdrop{display:none; position:fixed; inset:0; background:rgba(23,32,51,0.5); z-index:200;}
+  .drawer-backdrop.open{display:block;}
+  .side-drawer{
+    position:fixed; top:0; right:0; bottom:0; width:min(560px,92vw); background:var(--white); z-index:210;
+    transform:translateX(100%); transition:transform .2s ease; overflow-y:auto;
+  }
+  .side-drawer.open{transform:translateX(0);}
+  .drawer-head{display:flex; justify-content:space-between; align-items:center; padding:20px 28px; border-bottom:1px solid var(--gray); position:sticky; top:0; background:var(--white); z-index:5;}
+  .drawer-head h2{font-size:16px; font-weight:800;}
+  .drawer-close{font-size:13px; color:var(--muted);}
+  .drawer-body{padding:24px 28px 40px;}
+
+  .form-section{margin-bottom:26px;}
+  .form-section h3{font-size:13.5px; font-weight:800; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--main); display:inline-block;}
+  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 20px; font-size:13px;}
+  .info-grid div span:first-child{color:var(--muted); display:block; font-size:11.5px; margin-bottom:3px;}
+  .info-grid div span:last-child{font-weight:600;}
+
+  .mini-order-item{display:flex; justify-content:space-between; font-size:12.5px; padding:9px 0; border-bottom:1px dashed var(--gray);}
+  .mini-order-item:last-child{border-bottom:none;}
+
+  .grade-pills, .state-pills{display:flex; gap:8px; flex-wrap:wrap;}
+  .pill{padding:9px 14px; border:1px solid var(--gray); border-radius:var(--radius); font-size:12.5px; font-weight:600; color:var(--sub);}
+  .pill.selected{background:var(--main); color:var(--white); border-color:var(--main);}
+
+  .review-full-text{background:var(--bg); border-radius:var(--radius); padding:16px; font-size:13.5px; margin-bottom:20px; line-height:1.7;}
+
+  .answer-box textarea{width:100%; min-height:100px; padding:12px 14px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13.5px; font-family:inherit; resize:vertical;}
+
+  .drawer-foot{position:sticky; bottom:0; background:var(--white); border-top:1px solid var(--gray); padding:16px 28px; display:flex; gap:10px; justify-content:flex-end;}
+  .btn-cancel{padding:11px 20px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-weight:600; color:var(--sub);}
+  .btn-save{padding:11px 24px; background:var(--main); color:var(--white); border-radius:var(--radius); font-size:13px; font-weight:700;}
+
+  @media (max-width:900px){
+    .admin-shell{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .info-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo">리브<span>가전</span><small>관리자 시스템</small></div>
+    <div class="nav-group">
+      <a class="nav-item" href="admin-dashboard.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="12" width="8" height="9" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>
+        대시보드
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">상품</div>
+      <a class="nav-item" href="admin-products.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>
+        상품관리
+      </a>
+      <a class="nav-item" href="admin-category.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        카테고리관리
+      </a>
+      <a class="nav-item" href="admin-inventory.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        재고관리
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">주문/배송</div>
+      <a class="nav-item" href="admin-orders.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h2l2 11h10l2-8H7"/></svg>
+        주문관리
+      </a>
+      <a class="nav-item" href="admin-orders.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="7" width="14" height="10" rx="1.5"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="1.6"/><circle cx="18" cy="19" r="1.6"/></svg>
+        배송관리
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">고객</div>
+      <a class="nav-item active" href="admin-customers.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-5.6 7-5.6S17.8 16 19 20"/></svg>
+        회원관리
+      </a>
+      <a class="nav-item active" href="admin-customers.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l1.6 4.9H19l-4.2 3 1.6 4.9-4.4-3.1-4.4 3.1 1.6-4.9L5 7.9h5.4z"/></svg>
+        리뷰관리
+      </a>
+      <a class="nav-item active" href="admin-customers.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h16v12H8l-4 4z"/></svg>
+        문의관리
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">프로모션</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12l9-9 9 9-9 9z"/><circle cx="12" cy="12" r="2"/></svg>
+        쿠폰관리
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="1.5"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+        메인배너관리
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar"><h1>회원 / 리뷰 / 문의관리</h1></div>
+
+    <div class="top-tabs" id="topTabs">
+      <button class="top-tab active" data-v="members">회원관리</button>
+      <button class="top-tab" data-v="reviews">리뷰관리</button>
+      <button class="top-tab" data-v="inquiries">문의관리</button>
+    </div>
+
+    <!-- ================= 회원관리 ================= -->
+    <div class="view-panel active" id="view-members">
+      <div class="filter-bar">
+        <input type="text" placeholder="이름 / 아이디 / 연락처 검색">
+        <select><option>등급 전체</option><option>일반회원</option><option>실버</option><option>골드</option><option>VIP</option></select>
+        <select><option>상태 전체</option><option>정상</option><option>휴면</option><option>탈퇴</option></select>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>이름</th><th>아이디</th><th>연락처</th><th>가입일</th><th>주문횟수</th><th>총구매금액</th><th>등급</th><th>상태</th><th></th></tr></thead>
+          <tbody id="memberTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================= 리뷰관리 ================= -->
+    <div class="view-panel" id="view-reviews">
+      <div class="filter-bar">
+        <input type="text" placeholder="상품명 / 작성자 검색">
+        <select><option>별점 전체</option><option>5점</option><option>4점</option><option>3점 이하</option></select>
+        <select><option>노출상태 전체</option><option>노출</option><option>숨김</option></select>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>상품명</th><th>작성자</th><th>별점</th><th>내용</th><th>작성일</th><th>신고</th><th>노출상태</th><th></th></tr></thead>
+          <tbody id="reviewTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================= 문의관리 ================= -->
+    <div class="view-panel" id="view-inquiries">
+      <div class="sub-tabs" id="inquirySubTabs" style="margin-bottom:16px;">
+        <button class="sub-tab active" data-t="qna">상품 Q&A</button>
+        <button class="sub-tab" data-t="cs">고객센터 문의</button>
+      </div>
+
+      <div id="qnaSection">
+        <div class="filter-bar">
+          <input type="text" placeholder="상품명 / 작성자 검색">
+          <select><option>답변상태 전체</option><option>답변대기</option><option>답변완료</option></select>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>상품명</th><th>작성자</th><th>질문내용</th><th>작성일</th><th>비밀글</th><th>답변상태</th><th></th></tr></thead>
+            <tbody id="qnaTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="csSection" style="display:none;">
+        <div class="filter-bar">
+          <input type="text" placeholder="작성자 / 제목 검색">
+          <select><option>문의유형 전체</option><option>주문 문의</option><option>배송 문의</option><option>상품 문의</option><option>교환/반품</option><option>결제 문의</option><option>기타</option></select>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>문의유형</th><th>작성자</th><th>제목</th><th>작성일</th><th>답변상태</th><th></th></tr></thead>
+            <tbody id="csTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 회원 상세 Drawer -->
+<div class="drawer-backdrop" id="memberBackdrop"></div>
+<div class="side-drawer" id="memberDrawer">
+  <div class="drawer-head"><h2 id="memberDrawerTitle">회원 상세</h2><button class="drawer-close" onclick="closeDrawer('member')">닫기 ✕</button></div>
+  <div class="drawer-body">
+    <div class="form-section">
+      <h3>기본정보</h3>
+      <div class="info-grid" id="memberInfo"></div>
+    </div>
+    <div class="form-section">
+      <h3>등급 / 적립금</h3>
+      <div class="grade-pills" id="gradePills">
+        <button class="pill" data-v="일반회원">일반회원</button>
+        <button class="pill" data-v="실버">실버</button>
+        <button class="pill selected" data-v="골드">골드</button>
+        <button class="pill" data-v="VIP">VIP</button>
+      </div>
+    </div>
+    <div class="form-section">
+      <h3>최근 주문내역</h3>
+      <div class="mini-order-item"><span>LV202609070008</span><span>3,722,000원</span></div>
+      <div class="mini-order-item"><span>LV202607120014</span><span>1,113,000원</span></div>
+      <div class="mini-order-item"><span>LV202605020003</span><span>623,000원</span></div>
+    </div>
+    <div class="form-section">
+      <h3>회원 상태</h3>
+      <div class="state-pills" id="statePills">
+        <button class="pill selected" data-v="정상">정상</button>
+        <button class="pill" data-v="휴면">휴면</button>
+        <button class="pill" data-v="탈퇴">탈퇴 처리</button>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn-cancel" onclick="closeDrawer('member')">취소</button>
+    <button class="btn-save" onclick="alert('회원 정보가 저장되었습니다. (데모)'); closeDrawer('member')">저장하기</button>
+  </div>
+</div>
+
+<!-- 리뷰 상세 Drawer -->
+<div class="drawer-backdrop" id="reviewBackdrop"></div>
+<div class="side-drawer" id="reviewDrawer">
+  <div class="drawer-head"><h2>리뷰 상세</h2><button class="drawer-close" onclick="closeDrawer('review')">닫기 ✕</button></div>
+  <div class="drawer-body">
+    <div class="info-grid" style="margin-bottom:18px;">
+      <div><span>상품명</span><span id="rv_prod"></span></div>
+      <div><span>작성자</span><span id="rv_author"></span></div>
+      <div><span>별점</span><span id="rv_stars" class="stars-mini"></span></div>
+      <div><span>작성일</span><span id="rv_date"></span></div>
+    </div>
+    <div class="review-full-text" id="rv_text"></div>
+    <div class="state-pills" id="reviewVisibilityPills">
+      <button class="pill selected" data-v="show">노출</button>
+      <button class="pill" data-v="hide">숨김</button>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="row-btn danger" onclick="alert('리뷰가 삭제되었습니다. (데모)'); closeDrawer('review')">리뷰 삭제</button>
+    <button class="btn-save" onclick="alert('저장되었습니다. (데모)'); closeDrawer('review')">저장하기</button>
+  </div>
+</div>
+
+<!-- 답변 작성 Drawer (Q&A / CS 공용) -->
+<div class="drawer-backdrop" id="answerBackdrop"></div>
+<div class="side-drawer" id="answerDrawer">
+  <div class="drawer-head"><h2 id="answerDrawerTitle">답변 작성</h2><button class="drawer-close" onclick="closeDrawer('answer')">닫기 ✕</button></div>
+  <div class="drawer-body">
+    <div class="info-grid" style="margin-bottom:18px;" id="answerInfo"></div>
+    <div class="review-full-text" id="answerQuestion"></div>
+    <div class="answer-box">
+      <textarea id="answerText" placeholder="답변 내용을 입력해주세요."></textarea>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn-cancel" onclick="closeDrawer('answer')">취소</button>
+    <button class="btn-save" id="submitAnswerBtn">답변 등록</button>
+  </div>
+</div>
+
+<script>
+function openDrawer(name){
+  document.getElementById(name+'Drawer').classList.add('open');
+  document.getElementById(name+'Backdrop').classList.add('open');
+}
+function closeDrawer(name){
+  document.getElementById(name+'Drawer').classList.remove('open');
+  document.getElementById(name+'Backdrop').classList.remove('open');
+}
+['member','review','answer'].forEach(n=>{
+  document.getElementById(n+'Backdrop').addEventListener('click', ()=>closeDrawer(n));
+});
+
+// ---------- Top tabs ----------
+document.getElementById('topTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.top-tab');
+  if(!btn) return;
+  document.querySelectorAll('.top-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view-panel').forEach(p=>p.classList.toggle('active', p.id==='view-'+btn.dataset.v));
+});
+
+// ---------- 회원관리 ----------
+const members = [
+  {id:1, name:'김리브', uid:'livgajeon_kim', phone:'010-1234-5678', email:'kim@example.com', join:'2025.11.02', orders:6, total:8912000, grade:'골드', state:'정상'},
+  {id:2, name:'이수민', uid:'sumin_lee', phone:'010-2222-3333', email:'sumin@example.com', join:'2026.01.15', orders:2, total:1975000, grade:'실버', state:'정상'},
+  {id:3, name:'박준호', uid:'junho_park', phone:'010-4444-5555', email:'junho@example.com', join:'2024.08.20', orders:14, total:22400000, grade:'VIP', state:'정상'},
+  {id:4, name:'최유리', uid:'yuri_choi', phone:'010-6666-7777', email:'yuri@example.com', join:'2026.03.09', orders:1, total:623000, grade:'일반회원', state:'휴면'},
+  {id:5, name:'정하늘', uid:'haneul_jung', phone:'010-8888-9999', email:'haneul@example.com', join:'2025.06.30', orders:4, total:4213000, grade:'실버', state:'정상'},
+];
+
+function won(n){ return n.toLocaleString('ko-KR')+'원'; }
+const stateBadge = {'정상':'badge-green','휴면':'badge-gray','탈퇴':'badge-red'};
+
+function renderMembers(){
+  document.getElementById('memberTbody').innerHTML = members.map(m=>`
+    <tr>
+      <td>${m.name}</td><td>${m.uid}</td><td>${m.phone}</td><td>${m.join}</td>
+      <td>${m.orders}회</td><td>${won(m.total)}</td><td>${m.grade}</td>
+      <td><span class="badge ${stateBadge[m.state]}">${m.state}</span></td>
+      <td><button class="row-btn" onclick="openMemberDrawer(${m.id})">상세보기</button></td>
+    </tr>
+  `).join('');
+}
+renderMembers();
+
+function openMemberDrawer(id){
+  const m = members.find(x=>x.id===id);
+  document.getElementById('memberDrawerTitle').textContent = `회원 상세 · ${m.name}`;
+  document.getElementById('memberInfo').innerHTML = `
+    <div><span>이름</span><span>${m.name}</span></div>
+    <div><span>아이디</span><span>${m.uid}</span></div>
+    <div><span>연락처</span><span>${m.phone}</span></div>
+    <div><span>이메일</span><span>${m.email}</span></div>
+    <div><span>가입일</span><span>${m.join}</span></div>
+    <div><span>총 구매금액</span><span>${won(m.total)}</span></div>
+  `;
+  document.querySelectorAll('#gradePills .pill').forEach(p=>p.classList.toggle('selected', p.dataset.v===m.grade));
+  document.querySelectorAll('#statePills .pill').forEach(p=>p.classList.toggle('selected', p.dataset.v===m.state));
+  openDrawer('member');
+}
+document.getElementById('gradePills').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.pill'); if(!btn) return;
+  document.querySelectorAll('#gradePills .pill').forEach(p=>p.classList.remove('selected'));
+  btn.classList.add('selected');
+});
+document.getElementById('statePills').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.pill'); if(!btn) return;
+  document.querySelectorAll('#statePills .pill').forEach(p=>p.classList.remove('selected'));
+  btn.classList.add('selected');
+});
+
+// ---------- 리뷰관리 ----------
+const reviews = [
+  {id:1, prod:'BESPOKE 냉장고 4도어 875L', author:'김**', stars:5, text:'디자인도 예쁘고 용량도 넉넉해서 만족스럽습니다. 설치기사님도 친절하셨어요.', date:'2026.09.02', reports:0, visible:true},
+  {id:2, prod:'Neo QLED 4K TV 65형', author:'이**', stars:4, text:'배송이 생각보다 빨랐고 정품 그대로 왔습니다. 색상 옵션이 다양해서 좋았어요.', date:'2026.08.28', reports:0, visible:true},
+  {id:3, prod:'오브제컬렉션 세탁건조기 21kg', author:'박**', stars:2, text:'배송 기사님과 연락이 잘 안 돼서 설치가 하루 늦어졌습니다.', date:'2026.08.20', reports:2, visible:true},
+  {id:4, prod:'퓨리케어 공기청정기 360°', author:'최**', stars:5, text:'필터 교체 알림 기능이 편리하고 작동 소음이 조용한 편입니다.', date:'2026.08.15', reports:0, visible:false},
+];
+
+function renderReviews(){
+  document.getElementById('reviewTbody').innerHTML = reviews.map(r=>`
+    <tr>
+      <td class="cell-wrap">${r.prod}</td>
+      <td>${r.author}</td>
+      <td class="stars-mini">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</td>
+      <td class="cell-wrap">${r.text}</td>
+      <td>${r.date}</td>
+      <td>${r.reports>0 ? `<span class="badge badge-red">${r.reports}건</span>` : '-'}</td>
+      <td><span class="badge ${r.visible?'badge-green':'badge-gray'}">${r.visible?'노출':'숨김'}</span></td>
+      <td><button class="row-btn" onclick="openReviewDrawer(${r.id})">상세보기</button></td>
+    </tr>
+  `).join('');
+}
+renderReviews();
+
+function openReviewDrawer(id){
+  const r = reviews.find(x=>x.id===id);
+  document.getElementById('rv_prod').textContent = r.prod;
+  document.getElementById('rv_author').textContent = r.author;
+  document.getElementById('rv_stars').textContent = '★'.repeat(r.stars)+'☆'.repeat(5-r.stars);
+  document.getElementById('rv_date').textContent = r.date;
+  document.getElementById('rv_text').textContent = r.text;
+  document.querySelectorAll('#reviewVisibilityPills .pill').forEach(p=>p.classList.toggle('selected', (p.dataset.v==='show')===r.visible));
+  openDrawer('review');
+}
+document.getElementById('reviewVisibilityPills').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.pill'); if(!btn) return;
+  document.querySelectorAll('#reviewVisibilityPills .pill').forEach(p=>p.classList.remove('selected'));
+  btn.classList.add('selected');
+});
+
+// ---------- 문의관리 ----------
+document.getElementById('inquirySubTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.sub-tab'); if(!btn) return;
+  document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('qnaSection').style.display = btn.dataset.t==='qna' ? 'block':'none';
+  document.getElementById('csSection').style.display = btn.dataset.t==='cs' ? 'block':'none';
+});
+
+const qnaList = [
+  {id:1, prod:'BESPOKE 냉장고 4도어 875L', author:'윤**', text:'벽 쪽 설치 시 여유 공간이 얼마나 필요한가요?', date:'2026.09.06', secret:false, answered:false},
+  {id:2, prod:'Neo QLED 4K TV 65형', author:'장**', text:'스탠드형과 벽걸이형 무게 차이가 궁금합니다.', date:'2026.09.05', secret:true, answered:false},
+  {id:3, prod:'오브제컬렉션 세탁건조기 21kg', author:'서**', text:'기존 세탁기 철거만 별도로 신청할 수 있나요?', date:'2026.09.03', secret:false, answered:true},
+];
+
+function renderQna(){
+  document.getElementById('qnaTbody').innerHTML = qnaList.map(q=>`
+    <tr>
+      <td class="cell-wrap">${q.prod}</td>
+      <td>${q.author}</td>
+      <td class="cell-wrap">${q.secret ? '🔒 비밀글입니다.' : q.text}</td>
+      <td>${q.date}</td>
+      <td>${q.secret ? 'Y' : '-'}</td>
+      <td><span class="badge ${q.answered?'badge-green':'badge-red'}">${q.answered?'답변완료':'답변대기'}</span></td>
+      <td><button class="row-btn" onclick="openAnswerDrawer('qna', ${q.id})">${q.answered?'답변수정':'답변작성'}</button></td>
+    </tr>
+  `).join('');
+}
+renderQna();
+
+const csList = [
+  {id:1, type:'배송 문의', author:'김**', title:'배송이 너무 늦어지고 있어요', date:'2026.09.06', answered:false},
+  {id:2, type:'교환/반품', author:'이**', title:'단순변심으로 반품하고 싶습니다', date:'2026.09.05', answered:false},
+  {id:3, type:'결제 문의', author:'박**', title:'결제 취소 후 환불은 언제 되나요?', date:'2026.09.02', answered:true},
+];
+
+function renderCs(){
+  document.getElementById('csTbody').innerHTML = csList.map(c=>`
+    <tr>
+      <td>${c.type}</td><td>${c.author}</td>
+      <td class="cell-wrap">${c.title}</td><td>${c.date}</td>
+      <td><span class="badge ${c.answered?'badge-green':'badge-red'}">${c.answered?'답변완료':'답변대기'}</span></td>
+      <td><button class="row-btn" onclick="openAnswerDrawer('cs', ${c.id})">${c.answered?'답변수정':'답변작성'}</button></td>
+    </tr>
+  `).join('');
+}
+renderCs();
+
+let currentAnswerTarget = null;
+function openAnswerDrawer(kind, id){
+  currentAnswerTarget = {kind, id};
+  if(kind==='qna'){
+    const q = qnaList.find(x=>x.id===id);
+    document.getElementById('answerDrawerTitle').textContent = '상품 Q&A 답변';
+    document.getElementById('answerInfo').innerHTML = `
+      <div><span>상품명</span><span>${q.prod}</span></div>
+      <div><span>작성자</span><span>${q.author}</span></div>
+    `;
+    document.getElementById('answerQuestion').textContent = q.secret ? '🔒 비밀글로 작성된 문의입니다.' : q.text;
+  } else {
+    const c = csList.find(x=>x.id===id);
+    document.getElementById('answerDrawerTitle').textContent = '고객센터 문의 답변';
+    document.getElementById('answerInfo').innerHTML = `
+      <div><span>문의유형</span><span>${c.type}</span></div>
+      <div><span>작성자</span><span>${c.author}</span></div>
+    `;
+    document.getElementById('answerQuestion').textContent = c.title;
+  }
+  document.getElementById('answerText').value = '';
+  openDrawer('answer');
+}
+
+document.getElementById('submitAnswerBtn').addEventListener('click', ()=>{
+  if(!document.getElementById('answerText').value.trim()){
+    alert('답변 내용을 입력해주세요.'); return;
+  }
+  const {kind, id} = currentAnswerTarget;
+  if(kind==='qna'){
+    qnaList.find(x=>x.id===id).answered = true;
+    renderQna();
+  } else {
+    csList.find(x=>x.id===id).answered = true;
+    renderCs();
+  }
+  alert('답변이 등록되었습니다.');
+  closeDrawer('answer');
+});
+</script>
+</body>
+</html>

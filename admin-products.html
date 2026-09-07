@@ -102,10 +102,12 @@
   .status-pill.selected{background:var(--main); color:var(--white); border-color:var(--main);}
 
   .image-slots{display:flex; gap:10px; flex-wrap:wrap;}
-  .image-slot{width:84px; height:84px; border:1px dashed var(--gray); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; text-align:center; cursor:pointer; flex-direction:column; gap:4px;}
+  .image-slot{width:84px; height:84px; border:1px dashed var(--gray); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; text-align:center; cursor:pointer; flex-direction:column; gap:4px; position:relative; overflow:hidden;}
   .image-slot svg{width:22px; height:22px;}
-  .image-slot.filled{border-style:solid; background:var(--bg); position:relative; color:var(--sub);}
-  .image-slot .rep-tag{position:absolute; bottom:2px; left:2px; right:2px; background:var(--main); color:var(--white); font-size:9px; text-align:center; padding:1px 0; border-radius:1px;}
+  .image-slot img{width:100%; height:100%; object-fit:cover;}
+  .image-slot.filled{border-style:solid; background:var(--bg); position:relative; color:var(--sub); cursor:default;}
+  .image-slot .rep-tag{position:absolute; bottom:0; left:0; right:0; background:var(--main); color:var(--white); font-size:9px; text-align:center; padding:2px 0; border-radius:0;}
+  .image-slot .remove-img-btn{position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:rgba(0,0,0,0.6); color:var(--white); font-size:11px; display:flex; align-items:center; justify-content:center; z-index:2;}
 
   .dyn-row{display:grid; grid-template-columns:1fr 1fr 90px 32px; gap:8px; margin-bottom:8px; align-items:center;}
   .dyn-row input{padding:9px 10px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-family:inherit;}
@@ -281,27 +283,10 @@
 
     <div class="form-section">
       <h3>상품 이미지</h3>
-      <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">이미지 업로드 기능은 준비 중입니다. 지금은 카테고리 아이콘으로 대체 표시됩니다.</p>
-      <div class="image-slots">
-        <div class="image-slot filled">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M21 15l-5-5-4 4-3-3-6 6"/></svg>
-          대표이미지
-          <span class="rep-tag">대표</span>
-        </div>
-        <div class="image-slot">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          이미지 추가
-        </div>
-        <div class="image-slot">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          이미지 추가
-        </div>
-        <div class="image-slot">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          이미지 추가
-        </div>
-      </div>
+      <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">첫 번째 칸이 대표이미지입니다. 클릭해서 파일을 선택하세요 (JPG/PNG, 각 5MB 이하).</p>
+      <div class="image-slots" id="imageSlots"></div>
     </div>
+
 
     <div class="form-section" id="optionSection">
       <h3>옵션 (색상/용량별 재고)</h3>
@@ -371,17 +356,33 @@ let products = [];
 let brands = [];
 let categories = [];
 let editingProductId = null;
+let imageSlots = [null, null, null, null];
 
 async function loadLookups(){
-  const { data: brandRows } = await window.sb.from('brands').select('id, name').order('name');
-  const { data: catRows } = await window.sb.from('categories').select('id, name, parent_id').order('sort_order');
+  const { data: brandRows, error: brandErr } = await window.sb.from('brands').select('id, name').order('name');
+  const { data: catRows, error: catErr } = await window.sb.from('categories').select('id, name, parent_id').order('sort_order');
+
+  if(brandErr) console.error('브랜드 조회 실패:', brandErr);
+  if(catErr) console.error('카테고리 조회 실패:', catErr);
+
   brands = brandRows || [];
   categories = catRows || [];
 
   document.getElementById('brandFilter').innerHTML = '<option value="">브랜드 전체</option>' + brands.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
   document.getElementById('categoryFilter').innerHTML = '<option value="">카테고리 전체</option>' + categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  document.getElementById('f_brand').innerHTML = brands.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
-  document.getElementById('f_category').innerHTML = categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+
+  document.getElementById('f_brand').innerHTML = brands.length
+    ? brands.map(b=>`<option value="${b.id}">${b.name}</option>`).join('')
+    : '<option value="">등록된 브랜드가 없습니다</option>';
+  document.getElementById('f_category').innerHTML = categories.length
+    ? categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')
+    : '<option value="">등록된 카테고리가 없습니다</option>';
+
+  if(brandErr || catErr){
+    alert('브랜드/카테고리 목록을 불러오지 못했습니다.\n' + (brandErr?.message || catErr?.message || ''));
+  } else if(brands.length===0 || categories.length===0){
+    alert('브랜드 또는 카테고리가 하나도 등록되어 있지 않습니다. 카테고리관리 페이지에서 먼저 등록해주세요.');
+  }
 }
 
 async function loadProducts(){
@@ -516,6 +517,96 @@ function resetSpecRows(){
     <div class="spec-row"><input type="text" placeholder="항목 (예: 용량)"><input type="text" placeholder="내용"><button type="button" class="dyn-remove">✕</button></div>`;
 }
 
+// ---------- 상품 이미지 ----------
+function renderImageSlots(){
+  const container = document.getElementById('imageSlots');
+  container.innerHTML = '';
+  imageSlots.forEach((slot, i)=>{
+    const div = document.createElement('div');
+    div.className = 'image-slot' + (slot ? ' filled' : '');
+    if(slot){
+      div.innerHTML = `
+        <img src="${slot.url}" alt="상품 이미지">
+        ${i===0 ? '<span class="rep-tag">대표</span>' : ''}
+        <button type="button" class="remove-img-btn" data-idx="${i}">✕</button>
+      `;
+    } else {
+      div.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        ${i===0 ? '대표이미지' : '이미지 추가'}
+      `;
+      div.addEventListener('click', ()=>triggerFileSelect(i));
+    }
+    container.appendChild(div);
+  });
+}
+
+async function uploadProductImage(productId, file){
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${productId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await window.sb.storage.from('product-images').upload(path, file);
+  if(error){ alert('이미지 업로드에 실패했습니다: ' + error.message); return null; }
+  const { data } = window.sb.storage.from('product-images').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function triggerFileSelect(idx){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/png,image/jpeg,image/webp';
+  input.onchange = async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    if(file.size > 5*1024*1024){ alert('5MB 이하 이미지만 업로드 가능합니다.'); return; }
+
+    if(editingProductId){
+      const url = await uploadProductImage(editingProductId, file);
+      if(!url) return;
+      const { data: inserted, error } = await window.sb.from('product_images').insert({
+        product_id: editingProductId, url, sort_order: idx, is_representative: idx===0
+      }).select('id').single();
+      if(error){ alert('이미지 등록에 실패했습니다: ' + error.message); return; }
+      imageSlots[idx] = { type:'existing', id: inserted.id, url };
+    } else {
+      const previewUrl = URL.createObjectURL(file);
+      imageSlots[idx] = { type:'staged', file, url: previewUrl };
+    }
+    renderImageSlots();
+  };
+  input.click();
+}
+
+document.getElementById('imageSlots').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('.remove-img-btn');
+  if(!btn) return;
+  e.stopPropagation();
+  const idx = parseInt(btn.dataset.idx);
+  const slot = imageSlots[idx];
+  if(!slot) return;
+
+  if(slot.type === 'existing'){
+    if(!confirm('이 이미지를 삭제하시겠습니까?')) return;
+    const { error } = await window.sb.from('product_images').delete().eq('id', slot.id);
+    if(error){ alert('삭제에 실패했습니다: ' + error.message); return; }
+  } else {
+    URL.revokeObjectURL(slot.url);
+  }
+  imageSlots[idx] = null;
+  renderImageSlots();
+});
+
+async function loadExistingImages(productId){
+  const { data } = await window.sb
+    .from('product_images')
+    .select('id, url, sort_order')
+    .eq('product_id', productId)
+    .order('sort_order');
+  imageSlots = [null, null, null, null];
+  (data||[]).slice(0,4).forEach((img, i)=>{
+    imageSlots[i] = { type:'existing', id: img.id, url: img.url };
+  });
+}
+
 function openDrawer(id){
   editingProductId = id || null;
   document.getElementById('drawerTitle').textContent = id ? '상품 수정' : '상품 등록';
@@ -539,6 +630,7 @@ function openDrawer(id){
     document.getElementById('f_description').value = p.description || '';
     recalcFromPrices();
     document.querySelectorAll('#salePills .status-pill').forEach(b=>b.classList.toggle('selected', b.dataset.v===p.status));
+    loadExistingImages(id).then(renderImageSlots);
   } else {
     document.getElementById('f_name').value = '';
     document.getElementById('f_model').value = '';
@@ -552,6 +644,9 @@ function openDrawer(id){
     document.getElementById('calcResult').textContent = '정상가/판매가를 입력해주세요';
     resetOptionRows();
     resetSpecRows();
+    imageSlots.forEach(s=>{ if(s?.type==='staged') URL.revokeObjectURL(s.url); });
+    imageSlots = [null, null, null, null];
+    renderImageSlots();
     document.querySelectorAll('#salePills .status-pill').forEach(b=>b.classList.toggle('selected', b.dataset.v==='판매중'));
   }
 
@@ -571,16 +666,23 @@ document.getElementById('drawerSaveBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('f_name').value.trim();
   const listPrice = num(document.getElementById('f_list').value);
   const salePrice = num(document.getElementById('f_sale').value);
+  const brandId = document.getElementById('f_brand').value;
+  const categoryId = document.getElementById('f_category').value;
+
   if(!name || !listPrice || !salePrice){
     alert('상품명, 정상가, 판매가는 필수입니다.');
+    return;
+  }
+  if(!brandId || !categoryId){
+    alert('브랜드와 카테고리를 선택해주세요. 목록이 비어있다면 카테고리관리 페이지에서 먼저 등록해주세요.');
     return;
   }
 
   const payload = {
     name,
     model_no: document.getElementById('f_model').value.trim(),
-    brand_id: document.getElementById('f_brand').value,
-    category_id: document.getElementById('f_category').value,
+    brand_id: brandId,
+    category_id: categoryId,
     product_code: document.getElementById('f_code').value.trim(),
     ship_method: document.getElementById('f_ship').value,
     list_price: listPrice,
@@ -623,6 +725,18 @@ document.getElementById('drawerSaveBtn').addEventListener('click', async ()=>{
 
     if(specRows.length){
       await window.sb.from('product_specs').insert(specRows.map(s=>({ product_id: productId, label: s.label, value: s.value })));
+    }
+
+    for(let i=0; i<imageSlots.length; i++){
+      const slot = imageSlots[i];
+      if(slot?.type === 'staged'){
+        const url = await uploadProductImage(productId, slot.file);
+        if(url){
+          await window.sb.from('product_images').insert({
+            product_id: productId, url, sort_order: i, is_representative: i===0
+          });
+        }
+      }
     }
   }
 

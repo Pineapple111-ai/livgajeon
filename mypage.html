@@ -65,6 +65,8 @@
   .status-preparing{background:#EAF0FA; color:var(--sub);}
   .status-shipping{background:#FDEDED; color:var(--point);}
   .status-done{background:#EDF3EC; color:#2F7A45;}
+  .status-pending{background:#FDEDED; color:var(--point);}
+  .status-neutral{background:var(--gray); color:var(--muted);}
   .order-actions{display:flex; gap:8px; padding:0 18px 16px; justify-content:flex-end;}
   .order-actions button{padding:8px 14px; border:1px solid var(--gray); border-radius:var(--radius); font-size:12px; font-weight:600; color:var(--sub);}
 
@@ -158,80 +160,8 @@
       <!-- 주문내역/배송조회 -->
       <div class="tab-panel active" id="panel-orders">
         <div class="panel-title">주문내역</div>
-
-        <div class="order-card">
-          <div class="order-card-head"><span><b>2026.09.05</b> 주문번호 LV202609050031</span><span class="order-status-badge status-shipping">배송중</span></div>
-          <div class="order-card-body">
-            <div class="order-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg></div>
-            <div style="flex:1;">
-              <div class="order-name">BESPOKE 냉장고 4도어 875L</div>
-              <div class="order-meta">화이트 / 875L · 1개 · 1,814,000원</div>
-            </div>
-          </div>
-          <div class="order-actions">
-            <button onclick="toggleTracking(this)">배송조회</button>
-            <button>주문상세</button>
-          </div>
-          <div class="tracking-box">
-            <div class="track-steps">
-              <div class="track-step active"><div class="dot"></div>결제완료</div>
-              <div class="track-step active"><div class="dot"></div>상품준비중</div>
-              <div class="track-step active"><div class="dot"></div>배송중</div>
-              <div class="track-step"><div class="dot"></div>배송완료</div>
-              <div class="track-step"><div class="dot"></div>구매확정</div>
-            </div>
-            <div class="track-info">택배사: 리브로지스틱스 · 송장번호: 6547-1298-3321</div>
-          </div>
-        </div>
-
-        <div class="order-card">
-          <div class="order-card-head"><span><b>2026.08.22</b> 주문번호 LV202608220017</span><span class="order-status-badge status-done">구매확정</span></div>
-          <div class="order-card-body">
-            <div class="order-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
-            <div style="flex:1;">
-              <div class="order-name">Neo QLED 4K TV 65형</div>
-              <div class="order-meta">벽걸이 설치 · 1개 · 1,975,000원</div>
-            </div>
-          </div>
-          <div class="order-actions">
-            <button onclick="toggleTracking(this)">배송조회</button>
-            <button onclick="location.href='product-detail.html?id=3#review'">리뷰쓰기</button>
-          </div>
-          <div class="tracking-box">
-            <div class="track-steps">
-              <div class="track-step active"><div class="dot"></div>결제완료</div>
-              <div class="track-step active"><div class="dot"></div>상품준비중</div>
-              <div class="track-step active"><div class="dot"></div>배송중</div>
-              <div class="track-step active"><div class="dot"></div>배송완료</div>
-              <div class="track-step active"><div class="dot"></div>구매확정</div>
-            </div>
-            <div class="track-info">택배사: 리브로지스틱스 · 송장번호: 6321-9910-2287 (배송완료)</div>
-          </div>
-        </div>
-
-        <div class="order-card">
-          <div class="order-card-head"><span><b>2026.08.02</b> 주문번호 LV202608020005</span><span class="order-status-badge status-preparing">상품준비중</span></div>
-          <div class="order-card-body">
-            <div class="order-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="2"/></svg></div>
-            <div style="flex:1;">
-              <div class="order-name">오브제컬렉션 세탁건조기 21kg</div>
-              <div class="order-meta">베이지 · 1개 · 1,908,000원</div>
-            </div>
-          </div>
-          <div class="order-actions">
-            <button onclick="toggleTracking(this)">배송조회</button>
-            <button>취소/교환/반품</button>
-          </div>
-          <div class="tracking-box">
-            <div class="track-steps">
-              <div class="track-step active"><div class="dot"></div>결제완료</div>
-              <div class="track-step active"><div class="dot"></div>상품준비중</div>
-              <div class="track-step"><div class="dot"></div>배송중</div>
-              <div class="track-step"><div class="dot"></div>배송완료</div>
-              <div class="track-step"><div class="dot"></div>구매확정</div>
-            </div>
-            <div class="track-info">아직 송장번호가 등록되지 않았습니다.</div>
-          </div>
+        <div id="orderListContainer">
+          <p style="color:var(--muted); font-size:14px;">불러오는 중...</p>
         </div>
       </div>
 
@@ -359,6 +289,89 @@ document.querySelectorAll('.mini-remove').forEach(btn=>{
   });
 });
 
+// ---------- 주문내역 ----------
+const CATEGORY_ICON_MAP_MY = {
+  '냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`,
+  '세탁/건조': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`,
+  'TV': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`,
+  '주방가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`,
+  '생활가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+};
+const DEFAULT_ICON_MY = CATEGORY_ICON_MAP_MY['냉장고'];
+const STEPPER_ORDER = ['결제완료','상품준비중','배송준비','배송중','배송완료','구매확정'];
+const BADGE_CLASS_MAP = {
+  '결제대기':'status-pending', '결제완료':'status-preparing', '상품준비중':'status-preparing', '배송준비':'status-preparing',
+  '배송중':'status-shipping', '배송완료':'status-done', '구매확정':'status-done',
+  '취소':'status-neutral', '반품':'status-neutral', '교환':'status-neutral',
+};
+function won(n){ return (n||0).toLocaleString('ko-KR')+'원'; }
+
+async function loadMyOrders(userId){
+  const { data, error } = await window.sb
+    .from('orders')
+    .select(`
+      id, order_no, status, final_amount, created_at,
+      order_items ( qty, price, products ( id, name, categories(name) ), product_options ( option_value ) ),
+      shipments ( carrier, tracking_no, status )
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending:false });
+
+  if(error){ console.error(error); return; }
+
+  const container = document.getElementById('orderListContainer');
+  if(!data || data.length===0){
+    container.innerHTML = '<p style="color:var(--muted); font-size:14px;">아직 주문 내역이 없습니다.</p>';
+    return;
+  }
+
+  container.innerHTML = data.map(o=>{
+    const item = (o.order_items||[])[0];
+    const icon = CATEGORY_ICON_MAP_MY[item?.products?.categories?.name] || DEFAULT_ICON_MY;
+    const itemName = item?.products?.name || '상품';
+    const itemMeta = `${item?.product_options?.option_value ? item.product_options.option_value+' · ' : ''}${item?.qty||1}개 · ${won(item?.price)}`;
+    const dateStr = o.created_at ? o.created_at.slice(0,10).replace(/-/g,'.') : '';
+    const badgeCls = BADGE_CLASS_MAP[o.status] || 'status-neutral';
+
+    const stepIdx = STEPPER_ORDER.indexOf(o.status);
+    const stepsHtml = STEPPER_ORDER.map((s,i)=>`<div class="track-step ${stepIdx>=0 && i<=stepIdx ? 'active':''}"><div class="dot"></div>${s}</div>`).join('');
+
+    const shipment = (o.shipments||[])[0];
+    const trackInfo = shipment?.tracking_no
+      ? `택배사: ${shipment.carrier || '-'} · 송장번호: ${shipment.tracking_no}`
+      : '아직 송장번호가 등록되지 않았습니다.';
+
+    let actionButtons = `<button onclick="toggleTracking(this)">배송조회</button>`;
+    if(o.status === '구매확정' && item?.products?.id){
+      actionButtons += `<button onclick="location.href='product-detail.html?id=${item.products.id}#review'">리뷰쓰기</button>`;
+    } else if(['취소','반품','교환'].includes(o.status)){
+      actionButtons += `<button disabled style="color:var(--muted);">${o.status} 처리됨</button>`;
+    } else if(o.status === '결제대기' || o.status === '결제완료' || o.status === '상품준비중'){
+      actionButtons += `<button onclick="alert('취소/교환/반품 신청 기능은 준비 중입니다.')">취소/교환/반품</button>`;
+    } else {
+      actionButtons += `<button onclick="alert('주문 상세 페이지는 준비 중입니다. 아래 배송조회로 확인해주세요.')">주문상세</button>`;
+    }
+
+    return `
+      <div class="order-card">
+        <div class="order-card-head"><span><b>${dateStr}</b> 주문번호 ${o.order_no}</span><span class="order-status-badge ${badgeCls}">${o.status}</span></div>
+        <div class="order-card-body">
+          <div class="order-thumb">${icon}</div>
+          <div style="flex:1;">
+            <div class="order-name">${itemName}${(o.order_items||[]).length>1 ? ` 외 ${o.order_items.length-1}건` : ''}</div>
+            <div class="order-meta">${itemMeta}</div>
+          </div>
+        </div>
+        <div class="order-actions">${actionButtons}</div>
+        <div class="tracking-box">
+          <div class="track-steps">${stepsHtml}</div>
+          <div class="track-info">${trackInfo}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 // ---------- 로그인 확인 및 내 정보 불러오기 ----------
 let currentUser = null;
 
@@ -397,6 +410,8 @@ async function initMyPage(){
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id);
   document.getElementById('userWishCount').textContent = wishCount || 0;
+
+  await loadMyOrders(user.id);
 }
 initMyPage();
 

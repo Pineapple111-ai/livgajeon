@@ -275,6 +275,7 @@ document.getElementById('orderBtn').addEventListener('click', (e)=>{
   e.preventDefault();
   const selected = cartItems.filter(i=>i.checked);
   if(selected.length===0) return;
+  sessionStorage.setItem('checkoutCartIds', JSON.stringify(selected.map(i=>i.id)));
   location.href = 'checkout.html';
 });
 

@@ -6,6 +6,8 @@
 <title>주문/결제 | 리브가전</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -110,27 +112,8 @@
       <div>
         <!-- 주문상품 -->
         <div class="block">
-          <h2>주문상품 (2)</h2>
-          <div class="order-item">
-            <div class="item-thumb">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>
-            </div>
-            <div>
-              <div class="item-name">BESPOKE 냉장고 4도어 875L</div>
-              <div class="item-option">화이트 / 875L / 기본설치</div>
-              <div class="item-qty-price">1개 · 1,814,000원</div>
-            </div>
-          </div>
-          <div class="order-item">
-            <div class="item-thumb">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="2"/></svg>
-            </div>
-            <div>
-              <div class="item-name">오브제컬렉션 세탁건조기 21kg</div>
-              <div class="item-option">베이지</div>
-              <div class="item-qty-price">1개 · 1,908,000원</div>
-            </div>
-          </div>
+          <h2>주문상품 (<span id="itemCount">0</span>)</h2>
+          <div id="orderItemsList"></div>
         </div>
 
         <!-- 배송정보 -->
@@ -146,31 +129,31 @@
           <div class="field-row">
             <div class="field">
               <label>받는 사람</label>
-              <input type="text" placeholder="이름">
+              <input type="text" id="f_receiver" placeholder="이름">
             </div>
             <div class="field">
               <label>휴대폰번호</label>
-              <input type="tel" placeholder="- 없이 숫자만 입력">
+              <input type="tel" id="f_phone" placeholder="- 없이 숫자만 입력">
             </div>
           </div>
           <div class="field">
             <label>우편번호</label>
             <div class="zip-row">
-              <input type="text" placeholder="우편번호">
+              <input type="text" id="f_zip" placeholder="우편번호">
               <button type="button" onclick="alert('우편번호 검색 화면입니다. (데모)')">우편번호 검색</button>
             </div>
           </div>
           <div class="field">
             <label>주소</label>
-            <input type="text" placeholder="기본주소">
+            <input type="text" id="f_address" placeholder="기본주소">
           </div>
           <div class="field">
             <label>상세주소</label>
-            <input type="text" placeholder="상세주소를 입력해주세요">
+            <input type="text" id="f_addressDetail" placeholder="상세주소를 입력해주세요">
           </div>
           <div class="field">
             <label>배송 요청사항</label>
-            <textarea placeholder="예) 부재 시 경비실에 맡겨주세요"></textarea>
+            <textarea id="f_note" placeholder="예) 부재 시 경비실에 맡겨주세요"></textarea>
           </div>
         </div>
 
@@ -189,13 +172,13 @@
       <!-- 결제 요약 -->
       <div class="summary-box">
         <h3>결제 예상금액</h3>
-        <div class="summary-row"><span>상품금액</span><span>6,189,000원</span></div>
-        <div class="summary-row discount"><span>할인금액</span><span>-4,467,000원</span></div>
+        <div class="summary-row"><span>상품금액</span><span id="sumList">0원</span></div>
+        <div class="summary-row discount"><span>할인금액</span><span id="sumDiscount">-0원</span></div>
         <div class="summary-row"><span>배송비</span><span>무료</span></div>
         <div class="summary-divider"></div>
-        <div class="summary-total"><span>최종 결제금액</span><span>3,722,000원</span></div>
+        <div class="summary-total"><span>최종 결제금액</span><span id="sumFinal">0원</span></div>
         <label class="agree-line"><input type="checkbox" id="agreeOrder"> 주문 내용을 확인하였으며, 결제에 동의합니다.</label>
-        <button class="pay-btn" id="payBtn">3,722,000원 결제하기</button>
+        <button class="pay-btn" id="payBtn">결제하기</button>
       </div>
     </div>
   </div>
@@ -217,6 +200,90 @@
 </div>
 
 <script>
+const CATEGORY_ICON_MAP = {
+  '냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`,
+  '세탁/건조': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`,
+  'TV': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`,
+};
+const DEFAULT_ICON = CATEGORY_ICON_MAP['냉장고'];
+
+function won(n){ return n.toLocaleString('ko-KR')+'원'; }
+
+let cartIds = [];
+let orderItems = []; // 화면 표시용
+
+async function initCheckout(){
+  const { data: { user } } = await window.sb.auth.getUser();
+  if(!user){
+    alert('로그인이 필요합니다.');
+    location.href = 'auth.html';
+    return;
+  }
+
+  const stored = sessionStorage.getItem('checkoutCartIds');
+  cartIds = stored ? JSON.parse(stored) : [];
+  if(cartIds.length === 0){
+    alert('주문할 상품이 없습니다. 장바구니에서 다시 선택해주세요.');
+    location.href = 'cart.html';
+    return;
+  }
+
+  const { data: rows, error } = await window.sb
+    .from('carts')
+    .select(`
+      id, qty, option_summary, unit_price,
+      products ( name, list_price, categories ( name ) )
+    `)
+    .in('id', cartIds);
+
+  if(error || !rows || rows.length === 0){
+    alert('주문 정보를 불러오지 못했습니다.');
+    location.href = 'cart.html';
+    return;
+  }
+
+  orderItems = rows.map(r=>({
+    name: r.products?.name || '상품',
+    icon: CATEGORY_ICON_MAP[r.products?.categories?.name] || DEFAULT_ICON,
+    option: r.option_summary || '기본',
+    qty: r.qty,
+    unitPrice: r.unit_price,
+    listUnitPrice: r.products?.list_price || r.unit_price,
+  }));
+
+  renderOrderItems();
+
+  // 프로필 정보로 받는사람/연락처 기본값 채우기
+  const { data: profile } = await window.sb.from('profiles').select('name, phone').eq('id', user.id).single();
+  if(profile){
+    document.getElementById('f_receiver').value = profile.name || '';
+    document.getElementById('f_phone').value = profile.phone || '';
+  }
+}
+
+function renderOrderItems(){
+  document.getElementById('itemCount').textContent = orderItems.length;
+  document.getElementById('orderItemsList').innerHTML = orderItems.map(item=>`
+    <div class="order-item">
+      <div class="item-thumb">${item.icon}</div>
+      <div>
+        <div class="item-name">${item.name}</div>
+        <div class="item-option">${item.option}</div>
+        <div class="item-qty-price">${item.qty}개 · ${won(item.unitPrice)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const listSum = orderItems.reduce((s,i)=>s+i.listUnitPrice*i.qty, 0);
+  const finalSum = orderItems.reduce((s,i)=>s+i.unitPrice*i.qty, 0);
+  const discount = listSum - finalSum;
+
+  document.getElementById('sumList').textContent = won(listSum);
+  document.getElementById('sumDiscount').textContent = '-'+won(discount);
+  document.getElementById('sumFinal').textContent = won(finalSum);
+  document.getElementById('payBtn').textContent = `${won(finalSum)} 결제하기`;
+}
+
 document.getElementById('payMethods').addEventListener('click', (e)=>{
   const item = e.target.closest('.pay-method');
   if(!item) return;
@@ -224,22 +291,62 @@ document.getElementById('payMethods').addEventListener('click', (e)=>{
   item.classList.add('selected');
 });
 
-document.getElementById('payBtn').addEventListener('click', ()=>{
+document.getElementById('payBtn').addEventListener('click', async ()=>{
   if(!document.getElementById('agreeOrder').checked){
     alert('주문 내용 확인 및 결제 동의가 필요합니다.');
     return;
   }
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth()+1).padStart(2,'0');
-  const d = String(now.getDate()).padStart(2,'0');
-  const rand = String(Math.floor(Math.random()*9999)).padStart(4,'0');
-  document.getElementById('orderNumber').textContent = `LV${y}${m}${d}${rand}`;
+  const receiver_name = document.getElementById('f_receiver').value.trim();
+  const receiver_phone = document.getElementById('f_phone').value.trim();
+  const address = document.getElementById('f_address').value.trim();
+  const address_detail = document.getElementById('f_addressDetail').value.trim();
+  const request_note = document.getElementById('f_note').value.trim();
+  const payment_method = document.querySelector('.pay-method.selected')?.dataset.method || 'card';
 
-  document.getElementById('checkoutView').style.display = 'none';
-  document.getElementById('completeView').style.display = 'block';
-  window.scrollTo(0,0);
+  if(!receiver_name || !receiver_phone || !address){
+    alert('배송정보를 모두 입력해주세요.');
+    return;
+  }
+
+  const payBtn = document.getElementById('payBtn');
+  payBtn.disabled = true;
+  payBtn.textContent = '결제 처리 중...';
+
+  const { data: { session } } = await window.sb.auth.getSession();
+
+  try {
+    const res = await fetch('/.netlify/functions/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        cartIds, receiver_name, receiver_phone, address, address_detail, request_note, payment_method,
+      }),
+    });
+    const result = await res.json();
+
+    if(!res.ok){
+      alert(result.error || '주문 처리에 실패했습니다.');
+      payBtn.disabled = false;
+      renderOrderItems();
+      return;
+    }
+
+    sessionStorage.removeItem('checkoutCartIds');
+    document.getElementById('orderNumber').textContent = result.order_no;
+    document.getElementById('checkoutView').style.display = 'none';
+    document.getElementById('completeView').style.display = 'block';
+    window.scrollTo(0,0);
+  } catch(err){
+    alert('네트워크 오류로 주문에 실패했습니다. 다시 시도해주세요.');
+    payBtn.disabled = false;
+    renderOrderItems();
+  }
 });
+
+initCheckout();
 </script>
 </body>
 </html>

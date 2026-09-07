@@ -196,7 +196,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.6-9.3-9C1.2 7.8 3 4.5 6.5 4.5c2 0 3.3 1 4 2.2.7-1.2 2-2.2 4-2.2 3.5 0 5.3 3.3 3.8 6.5C19 15.4 12 20 12 20z"/></svg>
         </button>
         <button class="btn btn-outline" onclick="addToCart()">장바구니</button>
-        <button class="btn btn-primary" onclick="location.href='checkout.html'">바로 구매</button>
+        <button class="btn btn-primary" onclick="buyNow()">바로 구매</button>
       </div>
 
       <div class="info-extra">
@@ -290,7 +290,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.6-9.3-9C1.2 7.8 3 4.5 6.5 4.5c2 0 3.3 1 4 2.2.7-1.2 2-2.2 4-2.2 3.5 0 5.3 3.3 3.8 6.5C19 15.4 12 20 12 20z"/></svg>
   </button>
   <button class="btn btn-outline" onclick="addToCart()">장바구니</button>
-  <button class="btn btn-primary" onclick="location.href='checkout.html'">바로 구매</button>
+  <button class="btn btn-primary" onclick="buyNow()">바로 구매</button>
 </div>
 
 <script>
@@ -470,6 +470,34 @@ async function addToCart(){
 
   if(error){ alert('장바구니 담기에 실패했습니다: ' + error.message); return; }
   alert('장바구니에 담았습니다.');
+}
+
+async function buyNow(){
+  const { data: { user } } = await window.sb.auth.getUser();
+  if(!user){
+    alert('구매하시려면 로그인이 필요합니다.');
+    location.href = 'auth.html';
+    return;
+  }
+
+  const extraSum = Object.values(selectedOptions).reduce((s,o)=>s+(o.extra||0), 0);
+  const unitPrice = product.sale_price + extraSum;
+  const optionSummary = Object.values(selectedOptions).map(o=>o.value).join(' / ') || '기본';
+  const primaryOptionId = Object.values(selectedOptions)[0]?.id || null;
+
+  const { data, error } = await window.sb.from('carts').insert({
+    user_id: user.id,
+    product_id: productId,
+    product_option_id: primaryOptionId,
+    option_summary: optionSummary,
+    unit_price: unitPrice,
+    qty: qty,
+  }).select('id').single();
+
+  if(error){ alert('구매 진행에 실패했습니다: ' + error.message); return; }
+
+  sessionStorage.setItem('checkoutCartIds', JSON.stringify([data.id]));
+  location.href = 'checkout.html';
 }
 
 // ---------- Tabs ----------

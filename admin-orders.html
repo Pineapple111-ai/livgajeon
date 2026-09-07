@@ -6,6 +6,8 @@
 <title>주문관리 | 리브가전 관리자</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -193,37 +195,37 @@
 
     <div class="filter-bar">
       <div class="filter-row">
-        <input type="text" placeholder="주문번호 / 주문자 / 연락처 / 상품명 검색">
-        <select>
-          <option>결제수단 전체</option>
-          <option>신용/체크카드</option>
-          <option>계좌이체</option>
-          <option>가상계좌</option>
-          <option>간편결제</option>
+        <input type="text" id="searchInput" placeholder="주문번호 / 주문자 / 연락처 / 상품명 검색">
+        <select id="paymentFilter">
+          <option value="">결제수단 전체</option>
+          <option value="card">신용/체크카드</option>
+          <option value="transfer">계좌이체</option>
+          <option value="virtual">가상계좌</option>
+          <option value="easy">간편결제</option>
         </select>
       </div>
       <div class="filter-row">
-        <div class="period-tabs">
-          <button class="period-tab active">오늘</button>
-          <button class="period-tab">어제</button>
-          <button class="period-tab">최근 7일</button>
-          <button class="period-tab">최근 30일</button>
-          <button class="period-tab">직접 선택</button>
+        <div class="period-tabs" id="periodTabs">
+          <button class="period-tab active" data-p="today">오늘</button>
+          <button class="period-tab" data-p="yesterday">어제</button>
+          <button class="period-tab" data-p="7d">최근 7일</button>
+          <button class="period-tab" data-p="30d">최근 30일</button>
+          <button class="period-tab" data-p="all">전체기간</button>
         </div>
       </div>
       <div class="filter-row">
         <div class="status-tabs" id="statusTabs">
           <button class="status-tab active" data-s="all">전체</button>
-          <button class="status-tab" data-s="pending">결제대기</button>
-          <button class="status-tab" data-s="paid">결제완료</button>
-          <button class="status-tab" data-s="preparing">상품준비중</button>
-          <button class="status-tab" data-s="readyship">배송준비</button>
-          <button class="status-tab" data-s="shipping">배송중</button>
-          <button class="status-tab" data-s="delivered">배송완료</button>
-          <button class="status-tab" data-s="confirmed">구매확정</button>
-          <button class="status-tab" data-s="cancel">취소</button>
-          <button class="status-tab" data-s="return">반품</button>
-          <button class="status-tab" data-s="exchange">교환</button>
+          <button class="status-tab" data-s="결제대기">결제대기</button>
+          <button class="status-tab" data-s="결제완료">결제완료</button>
+          <button class="status-tab" data-s="상품준비중">상품준비중</button>
+          <button class="status-tab" data-s="배송준비">배송준비</button>
+          <button class="status-tab" data-s="배송중">배송중</button>
+          <button class="status-tab" data-s="배송완료">배송완료</button>
+          <button class="status-tab" data-s="구매확정">구매확정</button>
+          <button class="status-tab" data-s="취소">취소</button>
+          <button class="status-tab" data-s="반품">반품</button>
+          <button class="status-tab" data-s="교환">교환</button>
         </div>
       </div>
     </div>
@@ -259,56 +261,28 @@
 
     <div class="form-section">
       <h3>주문자 정보</h3>
-      <div class="info-grid" id="ordererInfo">
-        <div><span>이름</span><span>김리브</span></div>
-        <div><span>연락처</span><span>010-1234-5678</span></div>
-        <div><span>이메일</span><span>kim@example.com</span></div>
-        <div><span>결제수단</span><span>신용/체크카드</span></div>
-      </div>
+      <div class="info-grid" id="ordererInfo"></div>
     </div>
 
     <div class="form-section">
       <h3>배송정보</h3>
-      <div class="info-grid" style="margin-bottom:16px;">
-        <div><span>수령인</span><span>김리브</span></div>
-        <div><span>연락처</span><span>010-1234-5678</span></div>
-        <div style="grid-column:1/-1;"><span>주소</span><span>서울특별시 00구 00로 00, 000동 000호</span></div>
-        <div style="grid-column:1/-1;"><span>요청사항</span><span>부재 시 경비실에 맡겨주세요</span></div>
-      </div>
+      <div class="info-grid" id="shippingInfo" style="margin-bottom:16px;"></div>
       <div class="field-row">
         <div class="field"><label>택배사</label>
-          <select><option>리브로지스틱스</option><option>대한통운</option><option>로젠택배</option></select>
+          <select id="f_carrier"><option>리브로지스틱스</option><option>대한통운</option><option>로젠택배</option></select>
         </div>
-        <div class="field"><label>송장번호</label><input type="text" placeholder="송장번호 입력" value="6547-1298-3321"></div>
+        <div class="field"><label>송장번호</label><input type="text" id="f_tracking" placeholder="송장번호 입력"></div>
       </div>
     </div>
 
     <div class="form-section">
       <h3>주문상품</h3>
-      <div class="order-prod-item">
-        <div class="prod-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg></div>
-        <div>
-          <div class="prod-name">BESPOKE 냉장고 4도어 875L</div>
-          <div class="prod-meta">화이트 / 875L · 1개 · 1,814,000원</div>
-        </div>
-      </div>
-      <div class="order-prod-item">
-        <div class="prod-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg></div>
-        <div>
-          <div class="prod-name">오브제컬렉션 세탁건조기 21kg</div>
-          <div class="prod-meta">베이지 · 1개 · 1,908,000원</div>
-        </div>
-      </div>
+      <div id="orderProdList"></div>
     </div>
 
     <div class="form-section">
       <h3>결제정보</h3>
-      <div class="pay-summary">
-        <div class="pay-row"><span>상품금액</span><span>6,189,000원</span></div>
-        <div class="pay-row"><span>할인금액</span><span style="color:var(--point);">-4,467,000원</span></div>
-        <div class="pay-row"><span>배송비</span><span>무료</span></div>
-        <div class="pay-row"><span>최종 결제금액</span><span>3,722,000원</span></div>
-      </div>
+      <div class="pay-summary" id="paySummary"></div>
     </div>
 
     <div class="form-section">
@@ -317,16 +291,16 @@
         <div class="field">
           <label>상태 선택</label>
           <select id="statusSelect">
-            <option value="pending">결제대기</option>
-            <option value="paid">결제완료</option>
-            <option value="preparing" selected>상품준비중</option>
-            <option value="readyship">배송준비</option>
-            <option value="shipping">배송중</option>
-            <option value="delivered">배송완료</option>
-            <option value="confirmed">구매확정</option>
-            <option value="cancel">취소</option>
-            <option value="return">반품</option>
-            <option value="exchange">교환</option>
+            <option value="결제대기">결제대기</option>
+            <option value="결제완료">결제완료</option>
+            <option value="상품준비중">상품준비중</option>
+            <option value="배송준비">배송준비</option>
+            <option value="배송중">배송중</option>
+            <option value="배송완료">배송완료</option>
+            <option value="구매확정">구매확정</option>
+            <option value="취소">취소</option>
+            <option value="반품">반품</option>
+            <option value="교환">교환</option>
           </select>
         </div>
         <button class="btn-apply" id="applyStatusBtn">상태 변경 적용</button>
@@ -334,97 +308,192 @@
     </div>
 
     <div class="form-section">
-      <h3>상태 변경 이력</h3>
+      <h3>상태 변경 이력 (이번 접속 세션 기준)</h3>
       <div class="history-log" id="historyLog">
-        <div class="history-item"><span class="h-time">09.07 09:12</span><span>결제완료 → 상품준비중</span></div>
-        <div class="history-item"><span class="h-time">09.07 08:30</span><span>결제대기 → 결제완료</span></div>
-        <div class="history-item"><span class="h-time">09.07 08:29</span><span>주문 생성 (결제대기)</span></div>
+        <p style="color:var(--muted);">이 창을 연 이후 변경한 내역이 여기 표시됩니다.</p>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-const statusMeta = {
-  pending:{label:'결제대기', cls:'badge-red'},
-  paid:{label:'결제완료', cls:'badge-blue'},
-  preparing:{label:'상품준비중', cls:'badge-blue'},
-  readyship:{label:'배송준비', cls:'badge-blue'},
-  shipping:{label:'배송중', cls:'badge-blue'},
-  delivered:{label:'배송완료', cls:'badge-green'},
-  confirmed:{label:'구매확정', cls:'badge-green'},
-  cancel:{label:'취소', cls:'badge-gray'},
-  return:{label:'반품', cls:'badge-gray'},
-  exchange:{label:'교환', cls:'badge-gray'},
+const CATEGORY_ICON_MAP = {
+  '냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`,
+  '세탁/건조': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`,
+  'TV': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`,
+  '주방가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`,
+  '생활가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
 };
-const stepperOrder = ['paid','preparing','readyship','shipping','delivered','confirmed'];
+const DEFAULT_ICON = CATEGORY_ICON_MAP['냉장고'];
+const PAY_METHOD_LABEL = { card:'신용/체크카드', transfer:'계좌이체', virtual:'가상계좌', easy:'간편결제' };
 
-let orders = [
-  {no:'LV202609070008', date:'2026.09.07', name:'김**', phone:'010-1234-5678', prod:'BESPOKE 냉장고 외 1건', amount:3722000, status:'preparing'},
-  {no:'LV202609070007', date:'2026.09.07', name:'이**', phone:'010-2222-3333', prod:'Neo QLED TV 65형', amount:1975000, status:'pending'},
-  {no:'LV202609070006', date:'2026.09.07', name:'박**', phone:'010-4444-5555', prod:'퓨리케어 공기청정기', amount:623000, status:'shipping'},
-  {no:'LV202609060005', date:'2026.09.06', name:'최**', phone:'010-6666-7777', prod:'오브제 세탁건조기', amount:1908000, status:'preparing'},
-  {no:'LV202609060004', date:'2026.09.06', name:'정**', phone:'010-8888-9999', prod:'디오스 식기세척기', amount:903000, status:'delivered'},
-  {no:'LV202609050031', date:'2026.09.05', name:'윤**', phone:'010-1111-2222', prod:'BESPOKE 세탁기 24kg', amount:1183000, status:'confirmed'},
-  {no:'LV202608300012', date:'2026.08.30', name:'장**', phone:'010-3333-4444', prod:'Neo QLED TV 65형', amount:1975000, status:'cancel'},
-];
+const statusBadgeMap = {
+  '결제대기':'badge-red', '결제완료':'badge-blue', '상품준비중':'badge-blue', '배송준비':'badge-blue',
+  '배송중':'badge-blue', '배송완료':'badge-green', '구매확정':'badge-green',
+  '취소':'badge-gray', '반품':'badge-gray', '교환':'badge-gray',
+};
+const stepperOrder = ['결제완료','상품준비중','배송준비','배송중','배송완료','구매확정'];
 
-function won(n){ return n.toLocaleString('ko-KR')+'원'; }
+function won(n){ return (n||0).toLocaleString('ko-KR')+'원'; }
 
-function renderOrders(filter='all'){
-  const tbody = document.getElementById('orderTbody');
-  const list = filter==='all' ? orders : orders.filter(o=>o.status===filter);
-  tbody.innerHTML = list.map(o=>{
-    const m = statusMeta[o.status];
+let orders = [];
+
+function periodStart(key){
+  const n = new Date();
+  if(key==='today') return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  if(key==='yesterday'){ const d = new Date(n.getFullYear(), n.getMonth(), n.getDate()); d.setDate(d.getDate()-1); return d; }
+  if(key==='7d'){ const d = new Date(n); d.setDate(d.getDate()-7); return d; }
+  if(key==='30d'){ const d = new Date(n); d.setDate(d.getDate()-30); return d; }
+  return null;
+}
+function periodEnd(key){
+  if(key==='yesterday'){ const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+  return null;
+}
+
+async function loadOrders(){
+  const { data, error } = await window.sb
+    .from('orders')
+    .select(`
+      id, order_no, status, payment_method, final_amount, total_amount, discount_amount,
+      receiver_name, receiver_phone, address, address_detail, request_note, created_at,
+      user_id, profiles ( name, phone ),
+      order_items ( qty, price, products ( name, categories(name) ), product_options ( option_value ) ),
+      payments ( method, status, paid_at ),
+      shipments ( id, carrier, tracking_no, status )
+    `)
+    .order('created_at', { ascending:false })
+    .limit(500);
+
+  if(error){ console.error(error); return; }
+  orders = data || [];
+  renderOrders();
+}
+
+function matchesFilters(o){
+  const statusFilter = document.querySelector('.status-tab.active')?.dataset.s || 'all';
+  const periodFilter = document.querySelector('.period-tab.active')?.dataset.p || 'today';
+  const payFilter = document.getElementById('paymentFilter').value;
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+
+  if(statusFilter!=='all' && o.status!==statusFilter) return false;
+  if(payFilter && o.payment_method!==payFilter) return false;
+
+  if(periodFilter!=='all'){
+    const start = periodStart(periodFilter);
+    const end = periodEnd(periodFilter);
+    const created = new Date(o.created_at);
+    if(start && created < start) return false;
+    if(end && created >= end) return false;
+  }
+
+  if(search){
+    const itemNames = (o.order_items||[]).map(i=>i.products?.name||'').join(' ').toLowerCase();
+    const hay = `${o.order_no} ${o.profiles?.name||''} ${o.receiver_name||''} ${o.receiver_phone||''} ${itemNames}`.toLowerCase();
+    if(!hay.includes(search)) return false;
+  }
+  return true;
+}
+
+function renderOrders(){
+  const list = orders.filter(matchesFilters);
+  document.getElementById('orderTbody').innerHTML = list.length ? list.map(o=>{
+    const cls = statusBadgeMap[o.status] || 'badge-gray';
+    const items = o.order_items || [];
+    const prodSummary = items.length ? `${items[0].products?.name || '상품'}${items.length>1 ? ` 외 ${items.length-1}건` : ''}` : '-';
+    const dateStr = o.created_at ? o.created_at.slice(0,10).replace(/-/g,'.') : '';
     return `
-    <tr class="clickable" onclick="openDrawer('${o.no}')">
-      <td class="order-no">${o.no}</td>
-      <td>${o.date}</td>
-      <td>${o.name}</td>
-      <td>${o.phone}</td>
-      <td class="order-prod">${o.prod}</td>
-      <td>${won(o.amount)}</td>
-      <td><span class="badge ${m.cls}">${m.label}</span></td>
-      <td><button class="row-detail-btn" onclick="event.stopPropagation(); openDrawer('${o.no}')">상세보기</button></td>
+    <tr class="clickable" onclick="openDrawer('${o.id}')">
+      <td class="order-no">${o.order_no}</td>
+      <td>${dateStr}</td>
+      <td>${o.profiles?.name || o.receiver_name || '-'}</td>
+      <td>${o.receiver_phone || '-'}</td>
+      <td class="order-prod">${prodSummary}</td>
+      <td>${won(o.final_amount)}</td>
+      <td><span class="badge ${cls}">${o.status}</span></td>
+      <td><button class="row-detail-btn" onclick="event.stopPropagation(); openDrawer('${o.id}')">상세보기</button></td>
     </tr>
   `;
-  }).join('');
+  }).join('') : '<tr><td colspan="8" style="color:var(--muted); text-align:center; padding:30px;">해당 조건의 주문이 없습니다.</td></tr>';
 }
-renderOrders();
 
 document.getElementById('statusTabs').addEventListener('click', (e)=>{
   const btn = e.target.closest('.status-tab');
   if(!btn) return;
   document.querySelectorAll('.status-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderOrders(btn.dataset.s);
+  renderOrders();
 });
-
-document.querySelectorAll('.period-tab').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.period-tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-  });
+document.getElementById('periodTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.period-tab');
+  if(!btn) return;
+  document.querySelectorAll('.period-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderOrders();
 });
+document.getElementById('paymentFilter').addEventListener('change', renderOrders);
+document.getElementById('searchInput').addEventListener('input', renderOrders);
 
 // ---------- Drawer ----------
 const drawer = document.getElementById('orderDrawer');
 const backdrop = document.getElementById('drawerBackdrop');
+let currentOrderId = null;
 
 function renderStepper(status){
-  const stepper = document.getElementById('statusStepper');
-  const steps = stepper.querySelectorAll('.step');
+  const steps = document.getElementById('statusStepper').querySelectorAll('.step');
   const idx = stepperOrder.indexOf(status);
-  steps.forEach((s,i)=>{
-    s.classList.toggle('done', idx>=0 && i<=idx);
-  });
+  steps.forEach((s,i)=> s.classList.toggle('done', idx>=0 && i<=idx));
 }
 
-function openDrawer(orderNo){
-  const o = orders.find(x=>x.no===orderNo);
-  document.getElementById('drawerOrderNo').textContent = `주문상세 · ${o.no}`;
+function openDrawer(orderId){
+  const o = orders.find(x=>x.id===orderId);
+  if(!o) return;
+  currentOrderId = orderId;
+
+  document.getElementById('drawerOrderNo').textContent = `주문상세 · ${o.order_no}`;
   document.getElementById('statusSelect').value = o.status;
   renderStepper(o.status);
+
+  document.getElementById('ordererInfo').innerHTML = `
+    <div><span>이름</span><span>${o.profiles?.name || o.receiver_name || '-'}</span></div>
+    <div><span>연락처</span><span>${o.profiles?.phone || o.receiver_phone || '-'}</span></div>
+    <div><span>결제수단</span><span>${PAY_METHOD_LABEL[o.payment_method] || o.payment_method || '-'}</span></div>
+  `;
+
+  document.getElementById('shippingInfo').innerHTML = `
+    <div><span>수령인</span><span>${o.receiver_name || '-'}</span></div>
+    <div><span>연락처</span><span>${o.receiver_phone || '-'}</span></div>
+    <div style="grid-column:1/-1;"><span>주소</span><span>${o.address || ''} ${o.address_detail || ''}</span></div>
+    <div style="grid-column:1/-1;"><span>요청사항</span><span>${o.request_note || '-'}</span></div>
+  `;
+
+  const shipment = (o.shipments||[])[0];
+  document.getElementById('f_carrier').value = shipment?.carrier || '리브로지스틱스';
+  document.getElementById('f_tracking').value = shipment?.tracking_no || '';
+
+  const items = o.order_items || [];
+  document.getElementById('orderProdList').innerHTML = items.length ? items.map(item=>{
+    const icon = CATEGORY_ICON_MAP[item.products?.categories?.name] || DEFAULT_ICON;
+    const opt = item.product_options?.option_value ? `${item.product_options.option_value} · ` : '';
+    return `
+      <div class="order-prod-item">
+        <div class="prod-thumb">${icon}</div>
+        <div>
+          <div class="prod-name">${item.products?.name || '상품'}</div>
+          <div class="prod-meta">${opt}${item.qty}개 · ${won(item.price)}</div>
+        </div>
+      </div>`;
+  }).join('') : '<p style="color:var(--muted); font-size:13px;">주문상품 정보가 없습니다.</p>';
+
+  document.getElementById('paySummary').innerHTML = `
+    <div class="pay-row"><span>상품금액</span><span>${won(o.total_amount)}</span></div>
+    <div class="pay-row"><span>할인금액</span><span style="color:var(--point);">-${won(o.discount_amount)}</span></div>
+    <div class="pay-row"><span>배송비</span><span>무료</span></div>
+    <div class="pay-row"><span>최종 결제금액</span><span>${won(o.final_amount)}</span></div>
+  `;
+
+  document.getElementById('historyLog').innerHTML = '<p style="color:var(--muted);">이 창을 연 이후 변경한 내역이 여기 표시됩니다.</p>';
+
   drawer.classList.add('open');
   backdrop.classList.add('open');
 }
@@ -435,12 +504,29 @@ function closeDrawer(){
 document.getElementById('drawerCloseBtn').addEventListener('click', closeDrawer);
 backdrop.addEventListener('click', closeDrawer);
 
-document.getElementById('applyStatusBtn').addEventListener('click', ()=>{
-  const orderNo = document.getElementById('drawerOrderNo').textContent.split('· ')[1];
+document.getElementById('applyStatusBtn').addEventListener('click', async ()=>{
+  const o = orders.find(x=>x.id===currentOrderId);
+  if(!o) return;
   const newStatus = document.getElementById('statusSelect').value;
-  const o = orders.find(x=>x.no===orderNo);
-  const oldLabel = statusMeta[o.status].label;
-  const newLabel = statusMeta[newStatus].label;
+  const oldStatus = o.status;
+  const carrier = document.getElementById('f_carrier').value;
+  const trackingNo = document.getElementById('f_tracking').value.trim();
+
+  const btn = document.getElementById('applyStatusBtn');
+  btn.disabled = true;
+
+  const { error: orderErr } = await window.sb.from('orders').update({ status: newStatus }).eq('id', currentOrderId);
+  if(orderErr){ alert('상태 변경에 실패했습니다: ' + orderErr.message); btn.disabled = false; return; }
+
+  if(trackingNo){
+    const existingShipment = (o.shipments||[])[0];
+    if(existingShipment){
+      await window.sb.from('shipments').update({ carrier, tracking_no: trackingNo, status: newStatus }).eq('id', existingShipment.id);
+    } else {
+      await window.sb.from('shipments').insert({ order_id: currentOrderId, carrier, tracking_no: trackingNo, status: newStatus });
+    }
+  }
+
   o.status = newStatus;
   renderStepper(newStatus);
 
@@ -448,12 +534,23 @@ document.getElementById('applyStatusBtn').addEventListener('click', ()=>{
   const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const log = document.createElement('div');
   log.className = 'history-item';
-  log.innerHTML = `<span class="h-time">${timeStr}</span><span>${oldLabel} → ${newLabel}</span>`;
-  document.getElementById('historyLog').prepend(log);
+  log.innerHTML = `<span class="h-time">${timeStr}</span><span>${oldStatus} → ${newStatus}</span>`;
+  const historyLog = document.getElementById('historyLog');
+  if(historyLog.querySelector('p')) historyLog.innerHTML = '';
+  historyLog.prepend(log);
 
-  renderOrders(document.querySelector('.status-tab.active').dataset.s);
-  alert(`주문상태가 '${newLabel}'(으)로 변경되었습니다.`);
+  btn.disabled = false;
+  renderOrders();
+  alert(`주문상태가 '${newStatus}'(으)로 변경되었습니다.`);
 });
+
+// ---------- Init ----------
+async function initPage(){
+  const admin = await window.requireAdmin();
+  if(!admin) return;
+  await loadOrders();
+}
+initPage();
 </script>
 </body>
 </html>

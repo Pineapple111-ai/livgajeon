@@ -6,6 +6,8 @@
 <title>회원/리뷰/문의관리 | 리브가전 관리자</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -181,13 +183,13 @@
     <!-- ================= 회원관리 ================= -->
     <div class="view-panel active" id="view-members">
       <div class="filter-bar">
-        <input type="text" placeholder="이름 / 아이디 / 연락처 검색">
-        <select><option>등급 전체</option><option>일반회원</option><option>실버</option><option>골드</option><option>VIP</option></select>
-        <select><option>상태 전체</option><option>정상</option><option>휴면</option><option>탈퇴</option></select>
+        <input type="text" id="memberSearch" placeholder="이름 / 연락처 검색">
+        <select id="gradeFilter"><option value="">등급 전체</option><option>일반회원</option><option>실버</option><option>골드</option><option>VIP</option></select>
+        <select id="memberStateFilter"><option value="">상태 전체</option><option>정상</option><option>휴면</option><option>탈퇴</option></select>
       </div>
       <div class="table-card">
         <table>
-          <thead><tr><th>이름</th><th>아이디</th><th>연락처</th><th>가입일</th><th>주문횟수</th><th>총구매금액</th><th>등급</th><th>상태</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>연락처</th><th>가입일</th><th>주문횟수</th><th>총구매금액</th><th>등급</th><th>상태</th><th></th></tr></thead>
           <tbody id="memberTbody"></tbody>
         </table>
       </div>
@@ -196,13 +198,12 @@
     <!-- ================= 리뷰관리 ================= -->
     <div class="view-panel" id="view-reviews">
       <div class="filter-bar">
-        <input type="text" placeholder="상품명 / 작성자 검색">
-        <select><option>별점 전체</option><option>5점</option><option>4점</option><option>3점 이하</option></select>
-        <select><option>노출상태 전체</option><option>노출</option><option>숨김</option></select>
+        <input type="text" id="reviewSearch" placeholder="상품명 / 작성자 검색">
+        <select id="reviewVisibleFilter"><option value="">노출상태 전체</option><option value="show">노출</option><option value="hide">숨김</option></select>
       </div>
       <div class="table-card">
         <table>
-          <thead><tr><th>상품명</th><th>작성자</th><th>별점</th><th>내용</th><th>작성일</th><th>신고</th><th>노출상태</th><th></th></tr></thead>
+          <thead><tr><th>상품명</th><th>작성자</th><th>별점</th><th>내용</th><th>작성일</th><th>노출상태</th><th></th></tr></thead>
           <tbody id="reviewTbody"></tbody>
         </table>
       </div>
@@ -217,8 +218,8 @@
 
       <div id="qnaSection">
         <div class="filter-bar">
-          <input type="text" placeholder="상품명 / 작성자 검색">
-          <select><option>답변상태 전체</option><option>답변대기</option><option>답변완료</option></select>
+          <input type="text" id="qnaSearch" placeholder="상품명 / 작성자 검색">
+          <select id="qnaStatusFilter"><option value="">답변상태 전체</option><option value="답변대기">답변대기</option><option value="답변완료">답변완료</option></select>
         </div>
         <div class="table-card">
           <table>
@@ -230,8 +231,8 @@
 
       <div id="csSection" style="display:none;">
         <div class="filter-bar">
-          <input type="text" placeholder="작성자 / 제목 검색">
-          <select><option>문의유형 전체</option><option>주문 문의</option><option>배송 문의</option><option>상품 문의</option><option>교환/반품</option><option>결제 문의</option><option>기타</option></select>
+          <input type="text" id="csSearch" placeholder="작성자 / 제목 검색">
+          <select id="csTypeFilter"><option value="">문의유형 전체</option><option>주문 문의</option><option>배송 문의</option><option>상품 문의</option><option>교환/반품</option><option>결제 문의</option><option>기타</option></select>
         </div>
         <div class="table-card">
           <table>
@@ -264,9 +265,7 @@
     </div>
     <div class="form-section">
       <h3>최근 주문내역</h3>
-      <div class="mini-order-item"><span>LV202609070008</span><span>3,722,000원</span></div>
-      <div class="mini-order-item"><span>LV202607120014</span><span>1,113,000원</span></div>
-      <div class="mini-order-item"><span>LV202605020003</span><span>623,000원</span></div>
+      <div id="memberOrders"></div>
     </div>
     <div class="form-section">
       <h3>회원 상태</h3>
@@ -279,7 +278,7 @@
   </div>
   <div class="drawer-foot">
     <button class="btn-cancel" onclick="closeDrawer('member')">취소</button>
-    <button class="btn-save" onclick="alert('회원 정보가 저장되었습니다. (데모)'); closeDrawer('member')">저장하기</button>
+    <button class="btn-save" id="saveMemberBtn">저장하기</button>
   </div>
 </div>
 
@@ -301,8 +300,8 @@
     </div>
   </div>
   <div class="drawer-foot">
-    <button class="row-btn danger" onclick="alert('리뷰가 삭제되었습니다. (데모)'); closeDrawer('review')">리뷰 삭제</button>
-    <button class="btn-save" onclick="alert('저장되었습니다. (데모)'); closeDrawer('review')">저장하기</button>
+    <button class="row-btn danger" id="deleteReviewBtn">리뷰 삭제</button>
+    <button class="btn-save" id="saveReviewBtn">저장하기</button>
   </div>
 </div>
 
@@ -324,6 +323,9 @@
 </div>
 
 <script>
+function won(n){ return (n||0).toLocaleString('ko-KR')+'원'; }
+const stateBadge = {'정상':'badge-green','휴면':'badge-gray','탈퇴':'badge-red'};
+
 function openDrawer(name){
   document.getElementById(name+'Drawer').classList.add('open');
   document.getElementById(name+'Backdrop').classList.add('open');
@@ -345,41 +347,85 @@ document.getElementById('topTabs').addEventListener('click', (e)=>{
   document.querySelectorAll('.view-panel').forEach(p=>p.classList.toggle('active', p.id==='view-'+btn.dataset.v));
 });
 
-// ---------- 회원관리 ----------
-const members = [
-  {id:1, name:'김리브', uid:'livgajeon_kim', phone:'010-1234-5678', email:'kim@example.com', join:'2025.11.02', orders:6, total:8912000, grade:'골드', state:'정상'},
-  {id:2, name:'이수민', uid:'sumin_lee', phone:'010-2222-3333', email:'sumin@example.com', join:'2026.01.15', orders:2, total:1975000, grade:'실버', state:'정상'},
-  {id:3, name:'박준호', uid:'junho_park', phone:'010-4444-5555', email:'junho@example.com', join:'2024.08.20', orders:14, total:22400000, grade:'VIP', state:'정상'},
-  {id:4, name:'최유리', uid:'yuri_choi', phone:'010-6666-7777', email:'yuri@example.com', join:'2026.03.09', orders:1, total:623000, grade:'일반회원', state:'휴면'},
-  {id:5, name:'정하늘', uid:'haneul_jung', phone:'010-8888-9999', email:'haneul@example.com', join:'2025.06.30', orders:4, total:4213000, grade:'실버', state:'정상'},
-];
+// ======================================================
+// 회원관리
+// ======================================================
+let members = [];
+let ordersByUser = {};
 
-function won(n){ return n.toLocaleString('ko-KR')+'원'; }
-const stateBadge = {'정상':'badge-green','휴면':'badge-gray','탈퇴':'badge-red'};
+async function loadMembers(){
+  const { data: profileRows } = await window.sb
+    .from('profiles')
+    .select('id, name, phone, grade, points, state, created_at')
+    .order('created_at', { ascending:false });
+
+  const { data: orderRows } = await window.sb
+    .from('orders')
+    .select('id, order_no, user_id, final_amount, status, created_at')
+    .order('created_at', { ascending:false });
+
+  ordersByUser = {};
+  (orderRows||[]).forEach(o=>{
+    if(!ordersByUser[o.user_id]) ordersByUser[o.user_id] = [];
+    ordersByUser[o.user_id].push(o);
+  });
+
+  members = (profileRows||[]).map(p=>{
+    const userOrders = ordersByUser[p.id] || [];
+    return {
+      id: p.id,
+      name: p.name || '(이름 미입력)',
+      phone: p.phone || '-',
+      join: p.created_at ? p.created_at.slice(0,10).replace(/-/g,'.') : '',
+      orders: userOrders.length,
+      total: userOrders.reduce((s,o)=>s+(o.final_amount||0),0),
+      grade: p.grade || '일반회원',
+      state: p.state || '정상',
+    };
+  });
+
+  renderMembers();
+}
 
 function renderMembers(){
-  document.getElementById('memberTbody').innerHTML = members.map(m=>`
-    <tr>
-      <td>${m.name}</td><td>${m.uid}</td><td>${m.phone}</td><td>${m.join}</td>
-      <td>${m.orders}회</td><td>${won(m.total)}</td><td>${m.grade}</td>
-      <td><span class="badge ${stateBadge[m.state]}">${m.state}</span></td>
-      <td><button class="row-btn" onclick="openMemberDrawer(${m.id})">상세보기</button></td>
-    </tr>
-  `).join('');
-}
-renderMembers();
+  const search = document.getElementById('memberSearch').value.trim().toLowerCase();
+  const gradeFilter = document.getElementById('gradeFilter').value;
+  const stateFilter = document.getElementById('memberStateFilter').value;
 
+  let list = members;
+  if(search) list = list.filter(m => m.name.toLowerCase().includes(search) || m.phone.includes(search));
+  if(gradeFilter) list = list.filter(m => m.grade === gradeFilter);
+  if(stateFilter) list = list.filter(m => m.state === stateFilter);
+
+  document.getElementById('memberTbody').innerHTML = list.length ? list.map(m=>`
+    <tr>
+      <td>${m.name}</td><td>${m.phone}</td><td>${m.join}</td>
+      <td>${m.orders}회</td><td>${won(m.total)}</td><td>${m.grade}</td>
+      <td><span class="badge ${stateBadge[m.state]||'badge-gray'}">${m.state}</span></td>
+      <td><button class="row-btn" onclick="openMemberDrawer('${m.id}')">상세보기</button></td>
+    </tr>
+  `).join('') : '<tr><td colspan="8" style="color:var(--muted); text-align:center; padding:30px;">회원이 없습니다.</td></tr>';
+}
+document.getElementById('memberSearch').addEventListener('input', renderMembers);
+document.getElementById('gradeFilter').addEventListener('change', renderMembers);
+document.getElementById('memberStateFilter').addEventListener('change', renderMembers);
+
+let currentMemberId = null;
 function openMemberDrawer(id){
   const m = members.find(x=>x.id===id);
+  currentMemberId = id;
   document.getElementById('memberDrawerTitle').textContent = `회원 상세 · ${m.name}`;
   document.getElementById('memberInfo').innerHTML = `
     <div><span>이름</span><span>${m.name}</span></div>
-    <div><span>아이디</span><span>${m.uid}</span></div>
     <div><span>연락처</span><span>${m.phone}</span></div>
-    <div><span>이메일</span><span>${m.email}</span></div>
     <div><span>가입일</span><span>${m.join}</span></div>
     <div><span>총 구매금액</span><span>${won(m.total)}</span></div>
   `;
+  const userOrders = (ordersByUser[id]||[]).slice(0,5);
+  document.getElementById('memberOrders').innerHTML = userOrders.length
+    ? userOrders.map(o=>`<div class="mini-order-item"><span>${o.order_no}</span><span>${won(o.final_amount)}</span></div>`).join('')
+    : '<p style="font-size:12.5px; color:var(--muted);">주문 내역이 없습니다.</p>';
+
   document.querySelectorAll('#gradePills .pill').forEach(p=>p.classList.toggle('selected', p.dataset.v===m.grade));
   document.querySelectorAll('#statePills .pill').forEach(p=>p.classList.toggle('selected', p.dataset.v===m.state));
   openDrawer('member');
@@ -394,38 +440,67 @@ document.getElementById('statePills').addEventListener('click', (e)=>{
   document.querySelectorAll('#statePills .pill').forEach(p=>p.classList.remove('selected'));
   btn.classList.add('selected');
 });
+document.getElementById('saveMemberBtn').addEventListener('click', async ()=>{
+  const grade = document.querySelector('#gradePills .pill.selected')?.dataset.v || '일반회원';
+  const state = document.querySelector('#statePills .pill.selected')?.dataset.v || '정상';
+  const { error } = await window.sb.from('profiles').update({ grade, state }).eq('id', currentMemberId);
+  if(error){ alert('저장에 실패했습니다: ' + error.message); return; }
+  alert('회원 정보가 저장되었습니다.');
+  closeDrawer('member');
+  await loadMembers();
+});
 
-// ---------- 리뷰관리 ----------
-const reviews = [
-  {id:1, prod:'BESPOKE 냉장고 4도어 875L', author:'김**', stars:5, text:'디자인도 예쁘고 용량도 넉넉해서 만족스럽습니다. 설치기사님도 친절하셨어요.', date:'2026.09.02', reports:0, visible:true},
-  {id:2, prod:'Neo QLED 4K TV 65형', author:'이**', stars:4, text:'배송이 생각보다 빨랐고 정품 그대로 왔습니다. 색상 옵션이 다양해서 좋았어요.', date:'2026.08.28', reports:0, visible:true},
-  {id:3, prod:'오브제컬렉션 세탁건조기 21kg', author:'박**', stars:2, text:'배송 기사님과 연락이 잘 안 돼서 설치가 하루 늦어졌습니다.', date:'2026.08.20', reports:2, visible:true},
-  {id:4, prod:'퓨리케어 공기청정기 360°', author:'최**', stars:5, text:'필터 교체 알림 기능이 편리하고 작동 소음이 조용한 편입니다.', date:'2026.08.15', reports:0, visible:false},
-];
+// ======================================================
+// 리뷰관리
+// ======================================================
+let reviews = [];
+
+async function loadReviews(){
+  const { data, error } = await window.sb
+    .from('reviews')
+    .select('id, rating, content, visible, created_at, products(name), profiles(name)')
+    .order('created_at', { ascending:false });
+  if(error){ console.error(error); return; }
+  reviews = data || [];
+  renderReviews();
+}
 
 function renderReviews(){
-  document.getElementById('reviewTbody').innerHTML = reviews.map(r=>`
-    <tr>
-      <td class="cell-wrap">${r.prod}</td>
-      <td>${r.author}</td>
-      <td class="stars-mini">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</td>
-      <td class="cell-wrap">${r.text}</td>
-      <td>${r.date}</td>
-      <td>${r.reports>0 ? `<span class="badge badge-red">${r.reports}건</span>` : '-'}</td>
-      <td><span class="badge ${r.visible?'badge-green':'badge-gray'}">${r.visible?'노출':'숨김'}</span></td>
-      <td><button class="row-btn" onclick="openReviewDrawer(${r.id})">상세보기</button></td>
-    </tr>
-  `).join('');
-}
-renderReviews();
+  const search = document.getElementById('reviewSearch').value.trim().toLowerCase();
+  const visibleFilter = document.getElementById('reviewVisibleFilter').value;
 
+  let list = reviews;
+  if(search) list = list.filter(r => (r.products?.name||'').toLowerCase().includes(search) || (r.profiles?.name||'').toLowerCase().includes(search));
+  if(visibleFilter==='show') list = list.filter(r=>r.visible);
+  if(visibleFilter==='hide') list = list.filter(r=>!r.visible);
+
+  document.getElementById('reviewTbody').innerHTML = list.length ? list.map(r=>{
+    const dateStr = r.created_at ? r.created_at.slice(0,10).replace(/-/g,'.') : '';
+    return `
+    <tr>
+      <td class="cell-wrap">${r.products?.name || '-'}</td>
+      <td>${r.profiles?.name || '회원'}</td>
+      <td class="stars-mini">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</td>
+      <td class="cell-wrap">${r.content || ''}</td>
+      <td>${dateStr}</td>
+      <td><span class="badge ${r.visible?'badge-green':'badge-gray'}">${r.visible?'노출':'숨김'}</span></td>
+      <td><button class="row-btn" onclick="openReviewDrawer('${r.id}')">상세보기</button></td>
+    </tr>
+  `;
+  }).join('') : '<tr><td colspan="7" style="color:var(--muted); text-align:center; padding:30px;">리뷰가 없습니다.</td></tr>';
+}
+document.getElementById('reviewSearch').addEventListener('input', renderReviews);
+document.getElementById('reviewVisibleFilter').addEventListener('change', renderReviews);
+
+let currentReviewId = null;
 function openReviewDrawer(id){
   const r = reviews.find(x=>x.id===id);
-  document.getElementById('rv_prod').textContent = r.prod;
-  document.getElementById('rv_author').textContent = r.author;
-  document.getElementById('rv_stars').textContent = '★'.repeat(r.stars)+'☆'.repeat(5-r.stars);
-  document.getElementById('rv_date').textContent = r.date;
-  document.getElementById('rv_text').textContent = r.text;
+  currentReviewId = id;
+  document.getElementById('rv_prod').textContent = r.products?.name || '-';
+  document.getElementById('rv_author').textContent = r.profiles?.name || '회원';
+  document.getElementById('rv_stars').textContent = '★'.repeat(r.rating)+'☆'.repeat(5-r.rating);
+  document.getElementById('rv_date').textContent = r.created_at ? r.created_at.slice(0,10).replace(/-/g,'.') : '';
+  document.getElementById('rv_text').textContent = r.content || '';
   document.querySelectorAll('#reviewVisibilityPills .pill').forEach(p=>p.classList.toggle('selected', (p.dataset.v==='show')===r.visible));
   openDrawer('review');
 }
@@ -434,8 +509,26 @@ document.getElementById('reviewVisibilityPills').addEventListener('click', (e)=>
   document.querySelectorAll('#reviewVisibilityPills .pill').forEach(p=>p.classList.remove('selected'));
   btn.classList.add('selected');
 });
+document.getElementById('saveReviewBtn').addEventListener('click', async ()=>{
+  const visible = document.querySelector('#reviewVisibilityPills .pill.selected')?.dataset.v === 'show';
+  const { error } = await window.sb.from('reviews').update({ visible }).eq('id', currentReviewId);
+  if(error){ alert('저장에 실패했습니다: ' + error.message); return; }
+  alert('저장되었습니다.');
+  closeDrawer('review');
+  await loadReviews();
+});
+document.getElementById('deleteReviewBtn').addEventListener('click', async ()=>{
+  if(!confirm('이 리뷰를 삭제하시겠습니까?')) return;
+  const { error } = await window.sb.from('reviews').delete().eq('id', currentReviewId);
+  if(error){ alert('삭제에 실패했습니다: ' + error.message); return; }
+  alert('리뷰가 삭제되었습니다.');
+  closeDrawer('review');
+  await loadReviews();
+});
 
-// ---------- 문의관리 ----------
+// ======================================================
+// 문의관리
+// ======================================================
 document.getElementById('inquirySubTabs').addEventListener('click', (e)=>{
   const btn = e.target.closest('.sub-tab'); if(!btn) return;
   document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
@@ -444,44 +537,80 @@ document.getElementById('inquirySubTabs').addEventListener('click', (e)=>{
   document.getElementById('csSection').style.display = btn.dataset.t==='cs' ? 'block':'none';
 });
 
-const qnaList = [
-  {id:1, prod:'BESPOKE 냉장고 4도어 875L', author:'윤**', text:'벽 쪽 설치 시 여유 공간이 얼마나 필요한가요?', date:'2026.09.06', secret:false, answered:false},
-  {id:2, prod:'Neo QLED 4K TV 65형', author:'장**', text:'스탠드형과 벽걸이형 무게 차이가 궁금합니다.', date:'2026.09.05', secret:true, answered:false},
-  {id:3, prod:'오브제컬렉션 세탁건조기 21kg', author:'서**', text:'기존 세탁기 철거만 별도로 신청할 수 있나요?', date:'2026.09.03', secret:false, answered:true},
-];
+let qnaList = [];
+let csList = [];
+
+async function loadQna(){
+  const { data, error } = await window.sb
+    .from('product_questions')
+    .select('id, content, secret, answer, created_at, products(name), profiles(name)')
+    .order('created_at', { ascending:false });
+  if(error){ console.error(error); return; }
+  qnaList = data || [];
+  renderQna();
+}
 
 function renderQna(){
-  document.getElementById('qnaTbody').innerHTML = qnaList.map(q=>`
-    <tr>
-      <td class="cell-wrap">${q.prod}</td>
-      <td>${q.author}</td>
-      <td class="cell-wrap">${q.secret ? '🔒 비밀글입니다.' : q.text}</td>
-      <td>${q.date}</td>
-      <td>${q.secret ? 'Y' : '-'}</td>
-      <td><span class="badge ${q.answered?'badge-green':'badge-red'}">${q.answered?'답변완료':'답변대기'}</span></td>
-      <td><button class="row-btn" onclick="openAnswerDrawer('qna', ${q.id})">${q.answered?'답변수정':'답변작성'}</button></td>
-    </tr>
-  `).join('');
-}
-renderQna();
+  const search = document.getElementById('qnaSearch').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('qnaStatusFilter').value;
 
-const csList = [
-  {id:1, type:'배송 문의', author:'김**', title:'배송이 너무 늦어지고 있어요', date:'2026.09.06', answered:false},
-  {id:2, type:'교환/반품', author:'이**', title:'단순변심으로 반품하고 싶습니다', date:'2026.09.05', answered:false},
-  {id:3, type:'결제 문의', author:'박**', title:'결제 취소 후 환불은 언제 되나요?', date:'2026.09.02', answered:true},
-];
+  let list = qnaList;
+  if(search) list = list.filter(q => (q.products?.name||'').toLowerCase().includes(search) || (q.profiles?.name||'').toLowerCase().includes(search));
+  if(statusFilter==='답변대기') list = list.filter(q=>!q.answer);
+  if(statusFilter==='답변완료') list = list.filter(q=>!!q.answer);
+
+  document.getElementById('qnaTbody').innerHTML = list.length ? list.map(q=>{
+    const dateStr = q.created_at ? q.created_at.slice(0,10).replace(/-/g,'.') : '';
+    const answered = !!q.answer;
+    return `
+    <tr>
+      <td class="cell-wrap">${q.products?.name || '-'}</td>
+      <td>${q.profiles?.name || '회원'}</td>
+      <td class="cell-wrap">${q.secret ? '🔒 비밀글입니다.' : (q.content||'')}</td>
+      <td>${dateStr}</td>
+      <td>${q.secret ? 'Y' : '-'}</td>
+      <td><span class="badge ${answered?'badge-green':'badge-red'}">${answered?'답변완료':'답변대기'}</span></td>
+      <td><button class="row-btn" onclick="openAnswerDrawer('qna', '${q.id}')">${answered?'답변수정':'답변작성'}</button></td>
+    </tr>
+  `;
+  }).join('') : '<tr><td colspan="7" style="color:var(--muted); text-align:center; padding:30px;">문의가 없습니다.</td></tr>';
+}
+document.getElementById('qnaSearch').addEventListener('input', renderQna);
+document.getElementById('qnaStatusFilter').addEventListener('change', renderQna);
+
+async function loadCs(){
+  const { data, error } = await window.sb
+    .from('customer_inquiries')
+    .select('id, type, title, content, answer, status, created_at, profiles(name)')
+    .order('created_at', { ascending:false });
+  if(error){ console.error(error); return; }
+  csList = data || [];
+  renderCs();
+}
 
 function renderCs(){
-  document.getElementById('csTbody').innerHTML = csList.map(c=>`
+  const search = document.getElementById('csSearch').value.trim().toLowerCase();
+  const typeFilter = document.getElementById('csTypeFilter').value;
+
+  let list = csList;
+  if(search) list = list.filter(c => (c.title||'').toLowerCase().includes(search) || (c.profiles?.name||'').toLowerCase().includes(search));
+  if(typeFilter) list = list.filter(c=>c.type===typeFilter);
+
+  document.getElementById('csTbody').innerHTML = list.length ? list.map(c=>{
+    const dateStr = c.created_at ? c.created_at.slice(0,10).replace(/-/g,'.') : '';
+    const answered = c.status === '답변완료';
+    return `
     <tr>
-      <td>${c.type}</td><td>${c.author}</td>
-      <td class="cell-wrap">${c.title}</td><td>${c.date}</td>
-      <td><span class="badge ${c.answered?'badge-green':'badge-red'}">${c.answered?'답변완료':'답변대기'}</span></td>
-      <td><button class="row-btn" onclick="openAnswerDrawer('cs', ${c.id})">${c.answered?'답변수정':'답변작성'}</button></td>
+      <td>${c.type || '기타'}</td><td>${c.profiles?.name || '회원'}</td>
+      <td class="cell-wrap">${c.title}</td><td>${dateStr}</td>
+      <td><span class="badge ${answered?'badge-green':'badge-red'}">${c.status}</span></td>
+      <td><button class="row-btn" onclick="openAnswerDrawer('cs', '${c.id}')">${answered?'답변수정':'답변작성'}</button></td>
     </tr>
-  `).join('');
+  `;
+  }).join('') : '<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:30px;">문의가 없습니다.</td></tr>';
 }
-renderCs();
+document.getElementById('csSearch').addEventListener('input', renderCs);
+document.getElementById('csTypeFilter').addEventListener('change', renderCs);
 
 let currentAnswerTarget = null;
 function openAnswerDrawer(kind, id){
@@ -490,38 +619,52 @@ function openAnswerDrawer(kind, id){
     const q = qnaList.find(x=>x.id===id);
     document.getElementById('answerDrawerTitle').textContent = '상품 Q&A 답변';
     document.getElementById('answerInfo').innerHTML = `
-      <div><span>상품명</span><span>${q.prod}</span></div>
-      <div><span>작성자</span><span>${q.author}</span></div>
+      <div><span>상품명</span><span>${q.products?.name || '-'}</span></div>
+      <div><span>작성자</span><span>${q.profiles?.name || '회원'}</span></div>
     `;
-    document.getElementById('answerQuestion').textContent = q.secret ? '🔒 비밀글로 작성된 문의입니다.' : q.text;
+    document.getElementById('answerQuestion').textContent = q.secret ? '🔒 비밀글로 작성된 문의입니다.' : (q.content||'');
+    document.getElementById('answerText').value = q.answer || '';
   } else {
     const c = csList.find(x=>x.id===id);
     document.getElementById('answerDrawerTitle').textContent = '고객센터 문의 답변';
     document.getElementById('answerInfo').innerHTML = `
-      <div><span>문의유형</span><span>${c.type}</span></div>
-      <div><span>작성자</span><span>${c.author}</span></div>
+      <div><span>문의유형</span><span>${c.type || '기타'}</span></div>
+      <div><span>작성자</span><span>${c.profiles?.name || '회원'}</span></div>
     `;
-    document.getElementById('answerQuestion').textContent = c.title;
+    document.getElementById('answerQuestion').textContent = c.title + (c.content ? ('\n\n' + c.content) : '');
+    document.getElementById('answerText').value = c.answer || '';
   }
-  document.getElementById('answerText').value = '';
   openDrawer('answer');
 }
 
-document.getElementById('submitAnswerBtn').addEventListener('click', ()=>{
-  if(!document.getElementById('answerText').value.trim()){
-    alert('답변 내용을 입력해주세요.'); return;
-  }
+document.getElementById('submitAnswerBtn').addEventListener('click', async ()=>{
+  const answerText = document.getElementById('answerText').value.trim();
+  if(!answerText){ alert('답변 내용을 입력해주세요.'); return; }
   const {kind, id} = currentAnswerTarget;
+
   if(kind==='qna'){
-    qnaList.find(x=>x.id===id).answered = true;
-    renderQna();
+    const { error } = await window.sb.from('product_questions').update({ answer: answerText, answered_at: new Date().toISOString() }).eq('id', id);
+    if(error){ alert('답변 등록에 실패했습니다: ' + error.message); return; }
+    await loadQna();
   } else {
-    csList.find(x=>x.id===id).answered = true;
-    renderCs();
+    const { error } = await window.sb.from('customer_inquiries').update({ answer: answerText, status: '답변완료' }).eq('id', id);
+    if(error){ alert('답변 등록에 실패했습니다: ' + error.message); return; }
+    await loadCs();
   }
   alert('답변이 등록되었습니다.');
   closeDrawer('answer');
 });
+
+// ---------- Init ----------
+async function initPage(){
+  const admin = await window.requireAdmin();
+  if(!admin) return;
+  await loadMembers();
+  await loadReviews();
+  await loadQna();
+  await loadCs();
+}
+initPage();
 </script>
 </body>
 </html>

@@ -6,6 +6,8 @@
 <title>재고관리 | 리브가전 관리자</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -158,14 +160,13 @@
       <div class="stat-card"><div class="label">전체 재고 수량</div><div class="value" id="totalStock">0개</div></div>
       <div class="stat-card warn"><div class="label">안전재고 이하</div><div class="value" id="lowStockStat">0개</div></div>
       <div class="stat-card"><div class="label">품절 상품</div><div class="value" id="soldoutStat">0개</div></div>
-      <div class="stat-card"><div class="label">이번 주 판매수량</div><div class="value">216개</div></div>
+      <div class="stat-card"><div class="label">이번 주 판매수량</div><div class="value" id="weekSoldStat">0개</div></div>
     </div>
 
     <div class="filter-bar">
-      <input type="text" placeholder="상품명 / 옵션 검색">
-      <select>
-        <option>카테고리 전체</option>
-        <option>냉장고</option><option>세탁/건조</option><option>TV</option><option>주방가전</option><option>생활가전</option>
+      <input type="text" id="searchInput" placeholder="상품명 / 옵션 검색">
+      <select id="categoryFilter">
+        <option value="">카테고리 전체</option>
       </select>
       <div class="status-tabs" id="stockTabs">
         <button class="status-tab active" data-s="all">전체</button>
@@ -186,20 +187,70 @@
 </div>
 
 <script>
-const fridgeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`;
-const laundryIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`;
-const tvIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`;
-const kitchenIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`;
+const CATEGORY_ICON_MAP = {
+  '냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`,
+  '세탁/건조': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`,
+  'TV': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`,
+  '주방가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`,
+  '생활가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+};
+const DEFAULT_ICON = CATEGORY_ICON_MAP['냉장고'];
 
-let stockItems = [
-  {id:1, name:'BESPOKE 냉장고 4도어 875L', opt:'화이트 / 875L', icon:fridgeIcon, stock:24, sold:32, incoming:0, safe:5, edited:false},
-  {id:2, name:'BESPOKE 냉장고 4도어 875L', opt:'네이비 / 875L', icon:fridgeIcon, stock:4, sold:11, incoming:20, safe:5, edited:false},
-  {id:3, name:'오브제컬렉션 세탁건조기 21kg', opt:'베이지', icon:laundryIcon, stock:3, sold:21, incoming:10, safe:5, edited:false},
-  {id:4, name:'Neo QLED 4K TV 65형', opt:'스탠드형', icon:tvIcon, stock:14, sold:27, incoming:0, safe:5, edited:false},
-  {id:5, name:'퓨리케어 공기청정기 360°', opt:'화이트', icon:kitchenIcon, stock:0, sold:18, incoming:15, safe:5, edited:false},
-  {id:6, name:'트롬 건조기 히트펌프 21kg', opt:'화이트', icon:laundryIcon, stock:2, sold:9, incoming:0, safe:5, edited:false},
-  {id:7, name:'비스포크 광파오븐', opt:'블랙', icon:kitchenIcon, stock:31, sold:14, incoming:0, safe:5, edited:false},
-];
+let stockItems = [];
+
+async function loadCategoryFilter(){
+  const { data } = await window.sb.from('categories').select('id, name').order('sort_order');
+  const sel = document.getElementById('categoryFilter');
+  sel.innerHTML = '<option value="">카테고리 전체</option>' + (data||[]).map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+}
+
+async function loadStock(){
+  const { data: invRows, error } = await window.sb
+    .from('inventories')
+    .select(`
+      id, current_stock, safety_stock, incoming_stock,
+      product_options ( id, option_value, products ( name, categories(name) ) )
+    `);
+  if(error){ console.error(error); return; }
+
+  const { data: itemRows } = await window.sb
+    .from('order_items')
+    .select('option_id, qty, orders(created_at)')
+    .limit(5000);
+
+  const soldMap = {};
+  const weekSoldMap = {};
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  (itemRows||[]).forEach(r=>{
+    if(!r.option_id) return;
+    soldMap[r.option_id] = (soldMap[r.option_id]||0) + r.qty;
+    if(r.orders?.created_at && new Date(r.orders.created_at) >= weekAgo){
+      weekSoldMap[r.option_id] = (weekSoldMap[r.option_id]||0) + r.qty;
+    }
+  });
+
+  stockItems = (invRows||[]).map(inv=>{
+    const opt = inv.product_options;
+    const catName = opt?.products?.categories?.name || '';
+    return {
+      id: inv.id,
+      name: opt?.products?.name || '(삭제된 상품)',
+      opt: opt?.option_value || '-',
+      cat: catName,
+      icon: CATEGORY_ICON_MAP[catName] || DEFAULT_ICON,
+      stock: inv.current_stock,
+      sold: soldMap[opt?.id] || 0,
+      incoming: inv.incoming_stock || 0,
+      safe: inv.safety_stock,
+    };
+  });
+
+  const weekTotal = Object.values(weekSoldMap).reduce((s,n)=>s+n, 0);
+  document.getElementById('weekSoldStat').textContent = weekTotal.toLocaleString('ko-KR')+'개';
+
+  renderStats();
+  renderStock();
+}
 
 function renderStats(){
   const total = stockItems.reduce((s,i)=>s+i.stock,0);
@@ -218,12 +269,18 @@ function statusOf(item){
   return {label:'정상', cls:'badge-green'};
 }
 
-function renderStock(filter='all'){
+function renderStock(){
+  const filter = document.querySelector('.status-tab.active')?.dataset.s || 'all';
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const catFilter = document.getElementById('categoryFilter').value;
+
   let list = stockItems;
   if(filter==='low') list = list.filter(i=>i.stock>0 && i.stock<=i.safe);
   if(filter==='soldout') list = list.filter(i=>i.stock===0);
+  if(catFilter) list = list.filter(i=>i.cat===catFilter);
+  if(search) list = list.filter(i=> i.name.toLowerCase().includes(search) || i.opt.toLowerCase().includes(search));
 
-  document.getElementById('stockTbody').innerHTML = list.map(item=>{
+  document.getElementById('stockTbody').innerHTML = list.length ? list.map(item=>{
     const st = statusOf(item);
     return `
     <tr data-id="${item.id}">
@@ -239,46 +296,53 @@ function renderStock(filter='all'){
       <td>${item.incoming>0 ? item.incoming+'개' : '-'}</td>
       <td>${item.safe}개</td>
       <td><span class="badge ${st.cls}">${st.label}</span></td>
-      <td><input type="text" class="stock-input" value="${item.stock}" inputmode="numeric" onchange="markEdited(${item.id}, this.value)"></td>
+      <td><input type="text" class="stock-input" value="${item.stock}" inputmode="numeric" onchange="markEdited('${item.id}', this.value)"></td>
       <td>
         <div class="row-actions">
-          <button class="primary" onclick="applyStock(${item.id})">적용</button>
-          ${item.stock>0 ? `<button class="danger" onclick="setSoldout(${item.id})">품절처리</button>` : `<button onclick="restockToSafe(${item.id})">재입고</button>`}
+          <button class="primary" onclick="applyStock('${item.id}')">적용</button>
+          ${item.stock>0 ? `<button class="danger" onclick="setSoldout('${item.id}')">품절처리</button>` : `<button onclick="restockToSafe('${item.id}')">재입고</button>`}
         </div>
       </td>
     </tr>
   `;
-  }).join('');
+  }).join('') : '<tr><td colspan="9" style="color:var(--muted); text-align:center; padding:30px;">해당 조건의 재고가 없습니다.</td></tr>';
 }
-renderStats();
-renderStock();
 
 let pendingEdits = {};
 function markEdited(id, val){
   pendingEdits[id] = parseInt(val) || 0;
 }
-function applyStock(id){
+
+async function applyStock(id){
   const item = stockItems.find(x=>x.id===id);
-  if(pendingEdits[id] !== undefined){
-    item.stock = pendingEdits[id];
-    delete pendingEdits[id];
-  }
+  const newStock = pendingEdits[id] !== undefined ? pendingEdits[id] : item.stock;
+  const { error } = await window.sb.from('inventories').update({ current_stock: newStock }).eq('id', id);
+  if(error){ alert('저장에 실패했습니다: ' + error.message); return; }
+  item.stock = newStock;
+  delete pendingEdits[id];
   renderStats();
-  renderStock(document.querySelector('.status-tab.active').dataset.s);
+  renderStock();
   alert('재고가 수정되었습니다.');
 }
-function setSoldout(id){
+
+async function setSoldout(id){
   if(!confirm('해당 옵션을 품절 처리하시겠습니까?')) return;
   const item = stockItems.find(x=>x.id===id);
+  const { error } = await window.sb.from('inventories').update({ current_stock: 0 }).eq('id', id);
+  if(error){ alert('처리에 실패했습니다: ' + error.message); return; }
   item.stock = 0;
   renderStats();
-  renderStock(document.querySelector('.status-tab.active').dataset.s);
+  renderStock();
 }
-function restockToSafe(id){
+
+async function restockToSafe(id){
   const item = stockItems.find(x=>x.id===id);
-  item.stock = item.safe + 10;
+  const newStock = item.safe + 10;
+  const { error } = await window.sb.from('inventories').update({ current_stock: newStock }).eq('id', id);
+  if(error){ alert('처리에 실패했습니다: ' + error.message); return; }
+  item.stock = newStock;
   renderStats();
-  renderStock(document.querySelector('.status-tab.active').dataset.s);
+  renderStock();
   alert('재입고 처리되어 재고가 반영되었습니다.');
 }
 
@@ -287,8 +351,19 @@ document.getElementById('stockTabs').addEventListener('click', (e)=>{
   if(!btn) return;
   document.querySelectorAll('.status-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderStock(btn.dataset.s);
+  renderStock();
 });
+document.getElementById('searchInput').addEventListener('input', renderStock);
+document.getElementById('categoryFilter').addEventListener('change', renderStock);
+
+// ---------- Init ----------
+async function initPage(){
+  const admin = await window.requireAdmin();
+  if(!admin) return;
+  await loadCategoryFilter();
+  await loadStock();
+}
+initPage();
 </script>
 </body>
 </html>

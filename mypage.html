@@ -306,6 +306,14 @@ const BADGE_CLASS_MAP = {
 };
 function won(n){ return (n||0).toLocaleString('ko-KR')+'원'; }
 
+async function confirmPurchase(orderId){
+  if(!confirm('구매를 확정하시겠습니까? 구매확정 후에는 취소/교환/반품이 어려울 수 있고, 리뷰 작성이 가능해집니다.')) return;
+  const { error } = await window.sb.from('orders').update({ status: '구매확정' }).eq('id', orderId);
+  if(error){ alert('처리에 실패했습니다: ' + error.message); return; }
+  alert('구매가 확정되었습니다.');
+  await loadMyOrders(currentUser.id);
+}
+
 async function loadMyOrders(userId){
   const { data, error } = await window.sb
     .from('orders')
@@ -346,6 +354,8 @@ async function loadMyOrders(userId){
       actionButtons += `<button onclick="location.href='product-detail.html?id=${item.products.id}#review'">리뷰쓰기</button>`;
     } else if(['취소','반품','교환'].includes(o.status)){
       actionButtons += `<button disabled style="color:var(--muted);">${o.status} 처리됨</button>`;
+    } else if(o.status === '배송완료'){
+      actionButtons += `<button onclick="confirmPurchase('${o.id}')" style="background:var(--main); color:var(--white); border-color:var(--main);">구매확정</button>`;
     } else if(o.status === '결제대기' || o.status === '결제완료' || o.status === '상품준비중'){
       actionButtons += `<button onclick="alert('취소/교환/반품 신청 기능은 준비 중입니다.')">취소/교환/반품</button>`;
     } else {

@@ -19,3 +19,39 @@ window.CATEGORY_SLUG_MAP = {
   'living': '생활가전',
   'aircon': '에어컨',
 };
+
+// 휴대폰 번호 입력을 010-XXXX-XXXX 형식으로 자동 포맷
+// 사용법: <input oninput="formatKoreanPhone(this)">
+window.formatKoreanPhone = function(el){
+  let digits = el.value.replace(/[^0-9]/g, '').slice(0, 11);
+  let formatted = digits;
+  if(digits.length > 7){
+    formatted = digits.slice(0,3) + '-' + digits.slice(3,7) + '-' + digits.slice(7);
+  } else if(digits.length > 3){
+    formatted = digits.slice(0,3) + '-' + digits.slice(3);
+  }
+  el.value = formatted;
+};
+
+// 관리자 페이지 전용 가드: 로그인 + admin_users 등록 여부 확인
+// 관리자가 아니면 홈으로 돌려보낸다.
+window.requireAdmin = async function(){
+  const { data: { user } } = await window.sb.auth.getUser();
+  if(!user){
+    alert('관리자 로그인이 필요합니다.');
+    location.href = 'auth.html';
+    return null;
+  }
+  const { data: adminRow } = await window.sb
+    .from('admin_users')
+    .select('email, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(!adminRow){
+    alert('관리자 권한이 없는 계정입니다.');
+    location.href = 'index.html';
+    return null;
+  }
+  return { user, role: adminRow.role };
+};

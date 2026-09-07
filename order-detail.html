@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주문상세 | 리브가전</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<style>
+  :root{
+    --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
+    --text:#171717; --gray:#E9EBEF; --white:#FFFFFF; --muted:#7C8398;
+    --radius:3px; --maxw:860px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Pretendard','Noto Sans KR',sans-serif; color:var(--text); background:var(--white); line-height:1.5;}
+  img,svg{display:block; max-width:100%;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px;}
+
+  header.site-header{border-bottom:1px solid var(--gray);}
+  .header-inner{max-width:1240px; margin:0 auto; padding:0 24px; height:72px; display:flex; align-items:center; justify-content:space-between;}
+  .logo{font-size:22px; font-weight:800; letter-spacing:-0.03em; color:var(--main);}
+  .logo span{color:var(--point);}
+  .icon-btn{display:flex; align-items:center; justify-content:center; width:36px; height:36px; color:var(--main);}
+  .icon-btn svg{width:20px; height:20px;}
+
+  .breadcrumb{font-size:13px; color:var(--muted); padding:20px 0;}
+  .breadcrumb a{color:var(--muted);}
+  .breadcrumb span.current{color:var(--text); font-weight:600;}
+
+  .page-head{display:flex; justify-content:space-between; align-items:center; padding-bottom:20px;}
+  .page-head h1{font-size:22px; font-weight:800;}
+  .page-head .order-no{font-size:13px; color:var(--muted); margin-top:4px;}
+
+  .status-stepper{display:flex; justify-content:space-between; position:relative; margin:24px 0 36px;}
+  .status-stepper::before{content:''; position:absolute; top:9px; left:0; right:0; height:2px; background:var(--gray);}
+  .step{position:relative; text-align:center; flex:1; font-size:11px; color:var(--muted);}
+  .step .dot{width:18px; height:18px; border-radius:50%; background:var(--gray); margin:0 auto 8px; position:relative; z-index:1; border:3px solid var(--white);}
+  .step.done .dot{background:var(--main);}
+  .step.done{color:var(--main); font-weight:700;}
+  .status-note{text-align:center; font-size:12.5px; color:var(--muted); margin-top:-24px; margin-bottom:32px;}
+
+  .block{border-top:2px solid var(--main); padding-top:18px; margin-bottom:32px;}
+  .block h2{font-size:15px; font-weight:800; margin-bottom:16px;}
+
+  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 20px; font-size:13.5px;}
+  .info-grid div span:first-child{color:var(--muted); display:block; font-size:11.5px; margin-bottom:3px;}
+  .info-grid div span:last-child{font-weight:600;}
+
+  .order-item{display:flex; gap:14px; padding:14px 0; border-bottom:1px solid var(--gray);}
+  .order-item:last-child{border-bottom:none;}
+  .item-thumb{width:64px; height:64px; background:var(--bg); border:1px solid var(--gray); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .item-thumb svg{width:50%; height:50%; color:var(--sub);}
+  .item-thumb img{width:100%; height:100%; object-fit:cover; border-radius:var(--radius);}
+  .item-name{font-size:14px; font-weight:600; margin-bottom:4px;}
+  .item-meta{font-size:12.5px; color:var(--muted);}
+  .item-actions{margin-top:8px; display:flex; gap:8px;}
+  .item-actions button{padding:6px 12px; border:1px solid var(--gray); border-radius:var(--radius); font-size:12px; font-weight:600; color:var(--sub);}
+
+  .pay-summary{background:var(--bg); border-radius:var(--radius); padding:16px 18px; font-size:13.5px;}
+  .pay-row{display:flex; justify-content:space-between; margin-bottom:10px;}
+  .pay-row:last-child{margin-bottom:0; padding-top:10px; border-top:1px solid var(--gray); font-weight:800; font-size:15px;}
+
+  .bottom-actions{display:flex; gap:10px; padding:32px 0 60px;}
+  .bottom-actions button, .bottom-actions a{
+    flex:1; padding:15px; border-radius:var(--radius); font-size:14px; font-weight:700; text-align:center;
+  }
+  .btn-outline{border:1px solid var(--gray); color:var(--sub);}
+  .btn-primary{background:var(--main); color:var(--white);}
+
+  .loading-state{padding:80px 0; text-align:center; color:var(--muted);}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="logo">리브<span>가전</span></a>
+    <button class="icon-btn" aria-label="마이페이지" onclick="location.href='mypage.html'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-5.6 7-5.6S17.8 16 19 20"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">홈</a> / <a href="mypage.html">마이페이지</a> / <span class="current">주문상세</span></div>
+
+  <div id="loadingState" class="loading-state">불러오는 중...</div>
+
+  <div id="orderDetailView" style="display:none;">
+    <div class="page-head">
+      <div>
+        <h1>주문상세</h1>
+        <div class="order-no" id="orderNoDisplay"></div>
+      </div>
+    </div>
+
+    <div class="status-stepper" id="statusStepper"></div>
+    <div class="status-note" id="statusNote"></div>
+
+    <div class="block">
+      <h2>배송정보</h2>
+      <div class="info-grid" id="shippingInfo"></div>
+    </div>
+
+    <div class="block">
+      <h2>주문상품</h2>
+      <div id="orderItemsList"></div>
+    </div>
+
+    <div class="block">
+      <h2>결제정보</h2>
+      <div class="pay-summary" id="paySummary"></div>
+    </div>
+
+    <div class="bottom-actions" id="bottomActions"></div>
+  </div>
+
+  <div id="errorState" style="display:none;" class="loading-state">
+    <p>주문 정보를 찾을 수 없습니다.</p>
+    <div style="margin-top:20px;"><a href="mypage.html" class="btn-primary" style="display:inline-block; padding:12px 28px; border-radius:3px;">마이페이지로 돌아가기</a></div>
+  </div>
+</div>
+
+<script>
+const CATEGORY_ICON_MAP = {
+  '냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`,
+  '세탁/건조': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`,
+  'TV': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`,
+  '주방가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`,
+  '생활가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+};
+const DEFAULT_ICON = CATEGORY_ICON_MAP['냉장고'];
+const STEPPER_ORDER = ['결제완료','상품준비중','배송준비','배송중','배송완료','구매확정'];
+const PAY_METHOD_LABEL = { card:'신용/체크카드', transfer:'계좌이체', virtual:'가상계좌', easy:'간편결제' };
+
+function won(n){ return (n||0).toLocaleString('ko-KR')+'원'; }
+
+const orderId = new URLSearchParams(location.search).get('id');
+let currentOrder = null;
+let currentUserId = null;
+
+async function loadOrderDetail(){
+  const { data: { user } } = await window.sb.auth.getUser();
+  if(!user){
+    alert('로그인이 필요합니다.');
+    location.href = 'auth.html';
+    return;
+  }
+  currentUserId = user.id;
+
+  if(!orderId){
+    showError();
+    return;
+  }
+
+  const { data, error } = await window.sb
+    .from('orders')
+    .select(`
+      id, order_no, status, payment_method, total_amount, discount_amount, final_amount,
+      receiver_name, receiver_phone, address, address_detail, request_note, created_at,
+      order_items ( qty, price, products ( id, name, categories(name), product_images(url, is_representative) ), product_options ( option_value ) ),
+      shipments ( carrier, tracking_no, status )
+    `)
+    .eq('id', orderId)
+    .single();
+
+  if(error || !data){
+    showError();
+    return;
+  }
+
+  currentOrder = data;
+  renderOrder();
+}
+
+function showError(){
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errorState').style.display = 'block';
+}
+
+function renderOrder(){
+  const o = currentOrder;
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('orderDetailView').style.display = 'block';
+
+  const dateStr = o.created_at ? o.created_at.slice(0,10).replace(/-/g,'.') : '';
+  document.getElementById('orderNoDisplay').textContent = `주문번호 ${o.order_no} · ${dateStr}`;
+
+  // 상태 스텝퍼
+  const stepIdx = STEPPER_ORDER.indexOf(o.status);
+  const isSpecial = ['취소','반품','교환','결제대기'].includes(o.status);
+  if(isSpecial){
+    document.getElementById('statusStepper').style.display = 'none';
+    document.getElementById('statusNote').textContent = `현재 주문 상태: ${o.status}`;
+  } else {
+    document.getElementById('statusStepper').innerHTML = STEPPER_ORDER.map((s,i)=>
+      `<div class="step ${stepIdx>=0 && i<=stepIdx ? 'done':''}"><div class="dot"></div>${s}</div>`
+    ).join('');
+    document.getElementById('statusNote').textContent = '';
+  }
+
+  // 배송정보
+  const shipment = (o.shipments||[])[0];
+  document.getElementById('shippingInfo').innerHTML = `
+    <div><span>수령인</span><span>${o.receiver_name || '-'}</span></div>
+    <div><span>연락처</span><span>${o.receiver_phone || '-'}</span></div>
+    <div style="grid-column:1/-1;"><span>주소</span><span>${o.address || ''} ${o.address_detail || ''}</span></div>
+    <div style="grid-column:1/-1;"><span>배송 요청사항</span><span>${o.request_note || '-'}</span></div>
+    <div><span>택배사</span><span>${shipment?.carrier || '-'}</span></div>
+    <div><span>송장번호</span><span>${shipment?.tracking_no || '아직 등록되지 않았습니다'}</span></div>
+  `;
+
+  // 주문상품
+  const items = o.order_items || [];
+  document.getElementById('orderItemsList').innerHTML = items.map(item=>{
+    const images = item.products?.product_images || [];
+    const repImg = images.find(i=>i.is_representative) || images[0];
+    const thumb = repImg ? `<img src="${repImg.url}" alt="${item.products?.name}">` : (CATEGORY_ICON_MAP[item.products?.categories?.name] || DEFAULT_ICON);
+    const optText = item.product_options?.option_value ? `${item.product_options.option_value} · ` : '';
+    let itemActions = '';
+    if(o.status === '구매확정' && item.products?.id){
+      itemActions = `<div class="item-actions"><button onclick="location.href='product-detail.html?id=${item.products.id}#review'">리뷰쓰기</button></div>`;
+    }
+    return `
+      <div class="order-item">
+        <div class="item-thumb">${thumb}</div>
+        <div>
+          <div class="item-name">${item.products?.name || '상품'}</div>
+          <div class="item-meta">${optText}${item.qty}개 · ${won(item.price)}</div>
+          ${itemActions}
+        </div>
+      </div>
+    `;
+  }).join('') || '<p style="color:var(--muted); font-size:13px;">주문상품 정보가 없습니다.</p>';
+
+  // 결제정보
+  document.getElementById('paySummary').innerHTML = `
+    <div class="pay-row"><span>상품금액</span><span>${won(o.total_amount)}</span></div>
+    <div class="pay-row"><span>할인금액</span><span style="color:var(--point);">-${won(o.discount_amount)}</span></div>
+    <div class="pay-row"><span>배송비</span><span>무료</span></div>
+    <div class="pay-row"><span>결제수단</span><span>${PAY_METHOD_LABEL[o.payment_method] || o.payment_method || '-'}</span></div>
+    <div class="pay-row"><span>최종 결제금액</span><span>${won(o.final_amount)}</span></div>
+  `;
+
+  // 하단 액션
+  let actions = `<a href="mypage.html" class="btn-outline">마이페이지로</a>`;
+  if(o.status === '배송완료'){
+    actions += `<button class="btn-primary" onclick="confirmPurchase()">구매확정</button>`;
+  } else if(['결제대기','결제완료','상품준비중'].includes(o.status)){
+    actions += `<button class="btn-outline" onclick="alert('취소/교환/반품 신청 기능은 준비 중입니다.')">취소/교환/반품</button>`;
+  }
+  document.getElementById('bottomActions').innerHTML = actions;
+}
+
+async function confirmPurchase(){
+  if(!confirm('구매를 확정하시겠습니까? 구매확정 후에는 취소/교환/반품이 어려울 수 있고, 리뷰 작성이 가능해집니다.')) return;
+  const { error } = await window.sb.from('orders').update({ status: '구매확정' }).eq('id', orderId);
+  if(error){ alert('처리에 실패했습니다: ' + error.message); return; }
+  alert('구매가 확정되었습니다.');
+  location.reload();
+}
+
+loadOrderDetail();
+</script>
+</body>
+</html>

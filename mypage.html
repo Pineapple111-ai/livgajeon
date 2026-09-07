@@ -353,13 +353,13 @@ async function loadMyOrders(userId){
     if(o.status === '구매확정' && item?.products?.id){
       actionButtons += `<button onclick="location.href='product-detail.html?id=${item.products.id}#review'">리뷰쓰기</button>`;
     } else if(['취소','반품','교환'].includes(o.status)){
-      actionButtons += `<button disabled style="color:var(--muted);">${o.status} 처리됨</button>`;
+      actionButtons += `<button onclick="location.href='order-detail.html?id=${o.id}'">${o.status} 상세보기</button>`;
     } else if(o.status === '배송완료'){
       actionButtons += `<button onclick="confirmPurchase('${o.id}')" style="background:var(--main); color:var(--white); border-color:var(--main);">구매확정</button>`;
     } else if(o.status === '결제대기' || o.status === '결제완료' || o.status === '상품준비중'){
-      actionButtons += `<button onclick="alert('취소/교환/반품 신청 기능은 준비 중입니다.')">취소/교환/반품</button>`;
+      actionButtons += `<button onclick="location.href='order-detail.html?id=${o.id}'">취소/교환/반품</button>`;
     } else {
-      actionButtons += `<button onclick="alert('주문 상세 페이지는 준비 중입니다. 아래 배송조회로 확인해주세요.')">주문상세</button>`;
+      actionButtons += `<button onclick="location.href='order-detail.html?id=${o.id}'">주문상세</button>`;
     }
 
     return `

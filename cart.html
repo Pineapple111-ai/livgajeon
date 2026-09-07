@@ -6,6 +6,8 @@
 <title>장바구니 | 리브가전</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -121,17 +123,58 @@
 </div>
 
 <script>
-const fridgeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="8" y1="5" x2="8" y2="7"/><line x1="8" y1="13" x2="8" y2="15"/></svg>`;
-const laundryIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="2"/></svg>`;
-const tvIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
-
-let cartItems = [
-  {id:1, brand:'삼성전자', name:'BESPOKE 냉장고 4도어 875L', option:'화이트 / 875L / 기본설치', icon:fridgeIcon, list:3299000, price:1814000, qty:1, checked:true},
-  {id:2, brand:'LG전자', name:'오브제컬렉션 세탁건조기 21kg', option:'베이지', icon:laundryIcon, list:2890000, price:1908000, qty:1, checked:true},
-  {id:3, brand:'삼성전자', name:'Neo QLED 4K TV 65형', option:'벽걸이 설치', icon:tvIcon, list:3190000, price:1975000, qty:2, checked:false},
-];
+const CATEGORY_ICON_MAP = {
+  '냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="8" y1="5" x2="8" y2="7"/><line x1="8" y1="13" x2="8" y2="15"/></svg>`,
+  '김치냉장고': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="18" height="16" rx="1.5"/></svg>`,
+  '세탁/건조': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="5"/></svg>`,
+  'TV': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`,
+  '주방가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 12c0-4 3.5-7 8-7s8 3 8 7"/><rect x="3" y="12" width="18" height="8" rx="1.5"/></svg>`,
+  '생활가전': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="3" width="8" height="14" rx="3"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+};
+const DEFAULT_ICON = CATEGORY_ICON_MAP['냉장고'];
 
 function won(n){ return n.toLocaleString('ko-KR')+'원'; }
+
+let currentUserId = null;
+let cartItems = []; // {id, brand, name, icon, list, price, qty, checked, optionSummary}
+
+async function loadCart(){
+  const { data: { user } } = await window.sb.auth.getUser();
+  if(!user){
+    alert('장바구니는 로그인 후 이용하실 수 있습니다.');
+    location.href = 'auth.html';
+    return;
+  }
+  currentUserId = user.id;
+
+  const { data: rows, error } = await window.sb
+    .from('carts')
+    .select(`
+      id, qty, option_summary, unit_price, created_at,
+      products ( id, name, list_price, brands ( name ), categories ( name ) )
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true });
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  cartItems = (rows||[]).map(r=>({
+    id: r.id,
+    brand: r.products?.brands?.name || '',
+    name: r.products?.name || '알 수 없는 상품',
+    icon: CATEGORY_ICON_MAP[r.products?.categories?.name] || DEFAULT_ICON,
+    list: r.products?.list_price || r.unit_price,
+    price: r.unit_price,
+    qty: r.qty,
+    checked: true,
+    optionSummary: r.option_summary || '기본',
+  }));
+
+  renderCart();
+}
 
 function renderCart(){
   const list = document.getElementById('cartList');
@@ -148,7 +191,7 @@ function renderCart(){
         <div>
           <div class="item-brand">${item.brand}</div>
           <div class="item-name">${item.name}</div>
-          <div class="item-option">옵션: ${item.option}</div>
+          <div class="item-option">옵션: ${item.optionSummary}</div>
           <div class="item-qty">
             <button class="qty-minus">−</button>
             <span class="qty-val">${item.qty}</span>
@@ -188,22 +231,28 @@ function updateSummary(){
   orderBtn.classList.toggle('disabled', selectedItems.length===0);
 }
 
-document.getElementById('cartList').addEventListener('click', (e)=>{
+document.getElementById('cartList').addEventListener('click', async (e)=>{
   const row = e.target.closest('.cart-item');
   if(!row) return;
-  const id = parseInt(row.dataset.id);
+  const id = row.dataset.id;
   const item = cartItems.find(i=>i.id===id);
+  if(!item) return;
 
   if(e.target.classList.contains('item-check')){
     item.checked = e.target.checked;
     updateSummary();
   } else if(e.target.classList.contains('qty-plus')){
     item.qty++;
+    await window.sb.from('carts').update({ qty: item.qty }).eq('id', id);
     renderCart();
   } else if(e.target.classList.contains('qty-minus')){
-    if(item.qty>1) item.qty--;
-    renderCart();
+    if(item.qty>1){
+      item.qty--;
+      await window.sb.from('carts').update({ qty: item.qty }).eq('id', id);
+      renderCart();
+    }
   } else if(e.target.classList.contains('item-remove')){
+    await window.sb.from('carts').delete().eq('id', id);
     cartItems = cartItems.filter(i=>i.id!==id);
     renderCart();
   }
@@ -214,7 +263,10 @@ document.getElementById('selectAll').addEventListener('change', (e)=>{
   renderCart();
 });
 
-document.getElementById('deleteSelected').addEventListener('click', ()=>{
+document.getElementById('deleteSelected').addEventListener('click', async ()=>{
+  const idsToDelete = cartItems.filter(i=>i.checked).map(i=>i.id);
+  if(idsToDelete.length===0) return;
+  await window.sb.from('carts').delete().in('id', idsToDelete);
   cartItems = cartItems.filter(i=>!i.checked);
   renderCart();
 });
@@ -226,7 +278,7 @@ document.getElementById('orderBtn').addEventListener('click', (e)=>{
   location.href = 'checkout.html';
 });
 
-renderCart();
+loadCart();
 </script>
 </body>
 </html>

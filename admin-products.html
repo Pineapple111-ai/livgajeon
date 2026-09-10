@@ -8,6 +8,7 @@
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -199,10 +200,20 @@
   <main class="main">
     <div class="topbar">
       <h1>상품관리</h1>
-      <button class="btn-add" id="openAddBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        상품 등록
-      </button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-add" id="downloadTemplateBtn" style="background:var(--white); color:var(--main); border:1px solid var(--main);">
+          템플릿 다운로드
+        </button>
+        <button class="btn-add" id="bulkUploadBtn" style="background:var(--white); color:var(--main); border:1px solid var(--main);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M4 17v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+          엑셀 일괄등록
+        </button>
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+        <button class="btn-add" id="openAddBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          상품 등록
+        </button>
+      </div>
     </div>
 
     <div class="filter-bar">
@@ -810,6 +821,117 @@ document.getElementById('productDrawer').addEventListener('click', (e)=>{
   if(e.target.classList.contains('dyn-remove')){
     e.target.closest('.dyn-row, .spec-row').remove();
   }
+});
+
+// ---------- 엑셀 템플릿 다운로드 ----------
+document.getElementById('downloadTemplateBtn').addEventListener('click', ()=>{
+  const headers = ['상품명','브랜드','카테고리','모델명','상품코드','정상가','판매가','배송방법','판매상태','재고','안전재고','상품설명'];
+  const example = ['BESPOKE 냉장고 4도어 875L','삼성전자','냉장고','RF85XXXX','LV-FR-0001',3299000,1814000,'설치배송','판매중',20,5,'상품 상세 설명을 입력하세요'];
+  const guide = [
+    '※ 브랜드/카테고리는 카테고리관리·상품관리에 이미 등록된 이름과 정확히 같아야 합니다 (예: 삼성전자, LG전자 / 냉장고, TV 등)',
+    '※ 배송방법: 일반택배 / 화물배송 / 설치배송 / 직접배송 중 하나',
+    '※ 판매상태: 판매중 / 품절 / 일시품절 / 판매중지 / 예약판매 중 하나 (비워두면 판매중)',
+    '※ 이 템플릿으로 등록되는 상품은 옵션 없이 "기본" 옵션 1개로 등록됩니다. 색상/용량 등 옵션이 필요하면 등록 후 상품관리에서 개별적으로 다시 만들어주세요.',
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([headers, example, [], ...guide.map(g=>[g])]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '상품목록');
+  XLSX.writeFile(wb, '리브가전_상품등록_템플릿.xlsx');
+});
+
+// ---------- 엑셀 일괄 업로드 ----------
+document.getElementById('bulkUploadBtn').addEventListener('click', ()=>{
+  document.getElementById('excelFileInput').click();
+});
+
+document.getElementById('excelFileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value = '';
+
+  let rows;
+  try {
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type:'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+  } catch(err){
+    alert('파일을 읽지 못했습니다. 템플릿 형식(xlsx/csv)이 맞는지 확인해주세요.');
+    return;
+  }
+
+  rows = rows.filter(r => String(r['상품명']||'').trim());
+  if(rows.length===0){ alert('등록할 상품 데이터가 없습니다.'); return; }
+  if(!confirm(`${rows.length}개 상품을 일괄 등록하시겠습니까?`)) return;
+
+  const bulkBtn = document.getElementById('bulkUploadBtn');
+  bulkBtn.disabled = true;
+  bulkBtn.textContent = '등록 중...';
+
+  let successCount = 0;
+  const errors = [];
+
+  for(let i=0; i<rows.length; i++){
+    const row = rows[i];
+    const rowNum = i + 2; // 헤더+예시행 감안한 대략적 행 번호
+
+    const name = String(row['상품명']||'').trim();
+    const brandName = String(row['브랜드']||'').trim();
+    const catName = String(row['카테고리']||'').trim();
+    const listPrice = parseInt(row['정상가']) || 0;
+    const salePrice = parseInt(row['판매가']) || 0;
+
+    if(!name || !brandName || !catName || !listPrice || !salePrice){
+      errors.push(`${rowNum}행 (${name||'이름없음'}): 상품명/브랜드/카테고리/정상가/판매가는 필수입니다.`);
+      continue;
+    }
+    const brand = brands.find(b=>b.name===brandName);
+    const category = categories.find(c=>c.name===catName);
+    if(!brand){ errors.push(`${rowNum}행 (${name}): 브랜드 '${brandName}'를 찾을 수 없습니다.`); continue; }
+    if(!category){ errors.push(`${rowNum}행 (${name}): 카테고리 '${catName}'를 찾을 수 없습니다.`); continue; }
+
+    const payload = {
+      name,
+      brand_id: brand.id,
+      category_id: category.id,
+      model_no: String(row['모델명']||'').trim(),
+      product_code: String(row['상품코드']||'').trim(),
+      list_price: listPrice,
+      sale_price: salePrice,
+      ship_method: String(row['배송방법']||'').trim() || '일반택배',
+      status: String(row['판매상태']||'').trim() || '판매중',
+      description: String(row['상품설명']||'').trim(),
+    };
+
+    const { data: inserted, error } = await window.sb.from('products').insert(payload).select('id').single();
+    if(error){ errors.push(`${rowNum}행 (${name}): ${error.message}`); continue; }
+
+    const stock = parseInt(row['재고']) || 0;
+    const safety = parseInt(row['안전재고']) || 5;
+    const { data: optRow, error: optErr } = await window.sb
+      .from('product_options')
+      .insert({ product_id: inserted.id, option_name:'기본', option_value:'기본' })
+      .select('id').single();
+    if(!optErr && optRow){
+      await window.sb.from('inventories').insert({ product_option_id: optRow.id, current_stock: stock, safety_stock: safety });
+    }
+
+    successCount++;
+  }
+
+  bulkBtn.disabled = false;
+  bulkBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M4 17v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+    엑셀 일괄등록
+  `;
+
+  let msg = `총 ${rows.length}건 중 ${successCount}건 등록 완료되었습니다.`;
+  if(errors.length){
+    msg += `\n\n실패 ${errors.length}건:\n` + errors.slice(0,10).join('\n');
+    if(errors.length > 10) msg += `\n...외 ${errors.length-10}건`;
+  }
+  alert(msg);
+  await loadProducts();
 });
 
 // ---------- Init ----------

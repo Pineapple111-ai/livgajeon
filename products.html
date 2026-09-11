@@ -197,7 +197,8 @@ async function loadProducts(){
       categories ( name ),
       product_options ( id, inventories ( current_stock ) ),
       product_images ( url, is_representative, sort_order )
-    `);
+    `)
+    .neq('status', '판매중지');
 
   if(error){
     console.error(error);

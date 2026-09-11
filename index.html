@@ -602,7 +602,8 @@ async function loadHomeProducts(){
       categories ( name ),
       product_options ( id, inventories ( current_stock ) ),
       product_images ( url, is_representative )
-    `);
+    `)
+    .neq('status', '판매중지');
 
   if(error || !rows){ console.error(error); return; }
 

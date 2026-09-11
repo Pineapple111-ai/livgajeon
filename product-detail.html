@@ -219,9 +219,10 @@
   </div>
 
   <div class="tab-panel active" id="tab-prod">
-    <p style="font-size:15px; line-height:1.8; max-width:760px;" id="prodDescription">
+    <p style="font-size:15px; line-height:1.8; max-width:760px; margin-bottom:24px;" id="prodDescription">
       상품 설명을 불러오는 중입니다...
     </p>
+    <div id="prodDetailImages"></div>
   </div>
 
   <div class="tab-panel" id="tab-spec">
@@ -329,7 +330,7 @@ async function loadProduct(){
       categories ( name ),
       product_options ( id, option_name, option_value, extra_price, inventories ( current_stock ) ),
       product_specs ( label, value ),
-      product_images ( url, is_representative, sort_order )
+      product_images ( url, is_representative, sort_order, type )
     `)
     .eq('id', productId)
     .single();
@@ -351,7 +352,9 @@ function renderProduct(){
 
   document.title = `${product.name} | 리브가전`;
 
-  const images = (product.product_images || []).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const allImages = product.product_images || [];
+  const images = allImages.filter(img=>img.type!=='detail').slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const detailImages = allImages.filter(img=>img.type==='detail').slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   if(images.length){
     document.getElementById('galleryMain').innerHTML = `<img src="${images[0].url}" alt="${product.name}" style="width:100%; height:100%; object-fit:cover;">`;
     document.getElementById('galleryThumbs').innerHTML = images.map((img,i)=>`
@@ -433,6 +436,9 @@ function renderProduct(){
 
   // 상세설명 / 스펙
   document.getElementById('prodDescription').textContent = product.description || '등록된 상세 설명이 없습니다.';
+  document.getElementById('prodDetailImages').innerHTML = detailImages.length
+    ? detailImages.map(img=>`<img src="${img.url}" alt="${product.name} 상세이미지" style="width:100%; max-width:760px; display:block; margin:0 auto;">`).join('')
+    : '';
   const specs = product.product_specs || [];
   document.getElementById('specTableBody').innerHTML = specs.length
     ? specs.map(s=>`<tr><th>${s.label}</th><td>${s.value}</td></tr>`).join('')

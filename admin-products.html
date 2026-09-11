@@ -110,6 +110,13 @@
   .image-slot .rep-tag{position:absolute; bottom:0; left:0; right:0; background:var(--main); color:var(--white); font-size:9px; text-align:center; padding:2px 0; border-radius:0;}
   .image-slot .remove-img-btn{position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:rgba(0,0,0,0.6); color:var(--white); font-size:11px; display:flex; align-items:center; justify-content:center; z-index:2;}
 
+  .detail-image-list{display:flex; flex-direction:column; gap:10px; margin-bottom:10px;}
+  .detail-image-item{display:flex; align-items:center; gap:12px; border:1px solid var(--gray); border-radius:var(--radius); padding:8px; background:var(--bg);}
+  .detail-image-item img{width:80px; height:80px; object-fit:cover; border-radius:2px; flex-shrink:0;}
+  .detail-image-item .di-order{font-size:12px; color:var(--muted); width:36px; text-align:center; flex-shrink:0;}
+  .detail-image-item .di-remove{margin-left:auto; padding:6px 12px; border:1px solid var(--gray); border-radius:var(--radius); font-size:11.5px; font-weight:600; color:var(--point); flex-shrink:0;}
+  .detail-image-add-slot{width:100%; padding:20px; border:1px dashed var(--gray); border-radius:var(--radius); text-align:center; color:var(--muted); font-size:12px; cursor:pointer;}
+
   .dyn-row{display:grid; grid-template-columns:1fr 1fr 90px 32px; gap:8px; margin-bottom:8px; align-items:center;}
   .dyn-row input{padding:9px 10px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-family:inherit;}
   .dyn-remove{width:28px; height:28px; border:1px solid var(--gray); border-radius:var(--radius); color:var(--muted); font-size:14px;}
@@ -298,6 +305,13 @@
       <div class="image-slots" id="imageSlots"></div>
     </div>
 
+    <div class="form-section">
+      <h3>상세설명 이미지</h3>
+      <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">상품 상세페이지의 "상품정보" 탭 하단에 위에서부터 순서대로 길게 나열됩니다. 여러 장 추가할 수 있습니다.</p>
+      <div class="detail-image-list" id="detailImageList"></div>
+      <button type="button" class="dyn-add" id="addDetailImageBtn">+ 상세이미지 추가</button>
+    </div>
+
 
     <div class="form-section" id="optionSection">
       <h3>옵션 (색상/용량별 재고)</h3>
@@ -368,6 +382,7 @@ let brands = [];
 let categories = [];
 let editingProductId = null;
 let imageSlots = [null, null, null, null];
+let detailImages = []; // [{type:'existing', id, url} | {type:'staged', file, url}]
 
 async function loadLookups(){
   const { data: brandRows, error: brandErr } = await window.sb.from('brands').select('id, name').order('name');
@@ -620,7 +635,7 @@ function triggerFileSelect(idx){
       const url = await uploadProductImage(editingProductId, file);
       if(!url) return;
       const { data: inserted, error } = await window.sb.from('product_images').insert({
-        product_id: editingProductId, url, sort_order: idx, is_representative: idx===0
+        product_id: editingProductId, url, sort_order: idx, is_representative: idx===0, type: 'gallery'
       }).select('id').single();
       if(error){ alert('이미지 등록에 실패했습니다: ' + error.message); return; }
       imageSlots[idx] = { type:'existing', id: inserted.id, url };
@@ -657,12 +672,97 @@ async function loadExistingImages(productId){
     .from('product_images')
     .select('id, url, sort_order')
     .eq('product_id', productId)
+    .eq('type', 'gallery')
     .order('sort_order');
   imageSlots = [null, null, null, null];
   (data||[]).slice(0,4).forEach((img, i)=>{
     imageSlots[i] = { type:'existing', id: img.id, url: img.url };
   });
 }
+
+// ---------- 상세설명 이미지 ----------
+async function loadExistingDetailImages(productId){
+  const { data } = await window.sb
+    .from('product_images')
+    .select('id, url, sort_order')
+    .eq('product_id', productId)
+    .eq('type', 'detail')
+    .order('sort_order');
+  detailImages = (data||[]).map(img => ({ type:'existing', id: img.id, url: img.url }));
+}
+
+function renderDetailImages(){
+  const container = document.getElementById('detailImageList');
+  container.innerHTML = detailImages.length
+    ? detailImages.map((img, i)=>`
+        <div class="detail-image-item">
+          <span class="di-order">${i+1}번</span>
+          <img src="${img.url}" alt="상세이미지 ${i+1}">
+          <button type="button" class="di-remove" data-idx="${i}">삭제</button>
+        </div>
+      `).join('')
+    : '<p style="font-size:12px; color:var(--muted);">등록된 상세이미지가 없습니다.</p>';
+}
+
+document.getElementById('detailImageList').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('.di-remove');
+  if(!btn) return;
+  const idx = parseInt(btn.dataset.idx);
+  const img = detailImages[idx];
+  if(!img) return;
+
+  if(img.type === 'existing'){
+    if(!confirm('이 이미지를 삭제하시겠습니까?')) return;
+    const { error } = await window.sb.from('product_images').delete().eq('id', img.id);
+    if(error){ alert('삭제에 실패했습니다: ' + error.message); return; }
+  } else {
+    URL.revokeObjectURL(img.url);
+  }
+  detailImages.splice(idx, 1);
+  renderDetailImages();
+});
+
+document.getElementById('addDetailImageBtn').addEventListener('click', ()=>{
+  if(detailImages.length >= 10){ alert('상세이미지는 최대 10장까지 등록할 수 있습니다.'); return; }
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/png,image/jpeg,image/webp';
+  input.onchange = async (e)=>{
+    const rawFile = e.target.files[0];
+    if(!rawFile) return;
+
+    let file;
+    try {
+      const compressedBlob = await compressImage(rawFile);
+      const baseName = (rawFile.name.replace(/\.[^.]+$/, '') || 'image');
+      file = new File([compressedBlob], `${baseName}.jpg`, { type: 'image/jpeg' });
+    } catch(err){
+      console.error('이미지 압축에 실패해 원본으로 진행합니다.', err);
+      file = rawFile;
+    }
+    if(file.size > 5*1024*1024){
+      alert('압축 후에도 5MB를 초과합니다. 더 작은 이미지를 사용해주세요.');
+      return;
+    }
+
+    const nextOrder = detailImages.length;
+    if(editingProductId){
+      const url = await uploadProductImage(editingProductId, file);
+      if(!url) return;
+      const { data: inserted, error } = await window.sb.from('product_images').insert({
+        product_id: editingProductId, url, sort_order: nextOrder, is_representative: false, type: 'detail'
+      }).select('id').single();
+      if(error){ alert('이미지 등록에 실패했습니다: ' + error.message); return; }
+      detailImages.push({ type:'existing', id: inserted.id, url });
+    } else {
+      const previewUrl = URL.createObjectURL(file);
+      detailImages.push({ type:'staged', file, url: previewUrl });
+    }
+    renderDetailImages();
+  };
+  input.click();
+});
 
 function openDrawer(id){
   editingProductId = id || null;
@@ -688,6 +788,7 @@ function openDrawer(id){
     recalcFromPrices();
     document.querySelectorAll('#salePills .status-pill').forEach(b=>b.classList.toggle('selected', b.dataset.v===p.status));
     loadExistingImages(id).then(renderImageSlots);
+    loadExistingDetailImages(id).then(renderDetailImages);
   } else {
     document.getElementById('f_name').value = '';
     document.getElementById('f_model').value = '';
@@ -704,6 +805,9 @@ function openDrawer(id){
     imageSlots.forEach(s=>{ if(s?.type==='staged') URL.revokeObjectURL(s.url); });
     imageSlots = [null, null, null, null];
     renderImageSlots();
+    detailImages.forEach(s=>{ if(s?.type==='staged') URL.revokeObjectURL(s.url); });
+    detailImages = [];
+    renderDetailImages();
     document.querySelectorAll('#salePills .status-pill').forEach(b=>b.classList.toggle('selected', b.dataset.v==='판매중'));
   }
 
@@ -790,7 +894,19 @@ document.getElementById('drawerSaveBtn').addEventListener('click', async ()=>{
         const url = await uploadProductImage(productId, slot.file);
         if(url){
           await window.sb.from('product_images').insert({
-            product_id: productId, url, sort_order: i, is_representative: i===0
+            product_id: productId, url, sort_order: i, is_representative: i===0, type: 'gallery'
+          });
+        }
+      }
+    }
+
+    for(let i=0; i<detailImages.length; i++){
+      const img = detailImages[i];
+      if(img?.type === 'staged'){
+        const url = await uploadProductImage(productId, img.file);
+        if(url){
+          await window.sb.from('product_images').insert({
+            product_id: productId, url, sort_order: i, is_representative: false, type: 'detail'
           });
         }
       }

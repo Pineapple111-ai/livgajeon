@@ -233,7 +233,7 @@
     <div class="table-card">
       <table>
         <thead>
-          <tr><th>주문번호</th><th>주문일</th><th>주문자</th><th>연락처</th><th>상품명</th><th>주문금액</th><th>주문상태</th><th></th></tr>
+          <tr><th>주문번호</th><th>주문일</th><th>주문자</th><th>연락처</th><th>상품명</th><th>결제수단</th><th>주문금액</th><th>주문상태</th><th></th></tr>
         </thead>
         <tbody id="orderTbody"></tbody>
       </table>
@@ -409,12 +409,13 @@ function renderOrders(){
       <td>${o.profiles?.name || o.receiver_name || '-'}</td>
       <td>${o.receiver_phone || '-'}</td>
       <td class="order-prod">${prodSummary}</td>
+      <td>${PAY_METHOD_LABEL[o.payment_method] || o.payment_method || '-'}</td>
       <td>${won(o.final_amount)}</td>
       <td><span class="badge ${cls}">${o.status}</span></td>
       <td><button class="row-detail-btn" onclick="event.stopPropagation(); openDrawer('${o.id}')">상세보기</button></td>
     </tr>
   `;
-  }).join('') : '<tr><td colspan="8" style="color:var(--muted); text-align:center; padding:30px;">해당 조건의 주문이 없습니다.</td></tr>';
+  }).join('') : '<tr><td colspan="9" style="color:var(--muted); text-align:center; padding:30px;">해당 조건의 주문이 없습니다.</td></tr>';
 }
 
 document.getElementById('statusTabs').addEventListener('click', (e)=>{

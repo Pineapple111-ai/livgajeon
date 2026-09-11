@@ -127,7 +127,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         order_no: orderNo,
         user_id: userId,
-        status: '결제완료',
+        status: '결제대기',
         payment_method,
         total_amount: totalList,
         discount_amount: discountAmount,
@@ -153,15 +153,15 @@ exports.handler = async (event) => {
       body: JSON.stringify(orderItemsPayload.map(item => ({ ...item, order_id: orderId }))),
     });
 
-    // ---------- 8. 결제 레코드 생성 (모의 결제 — 실제 PG 연동 전 임시 처리) ----------
+    // ---------- 8. 결제 레코드 생성 (실제 결제는 고객센터를 통해 진행 — 우선 결제대기로 생성) ----------
     await fetch(`${SUPABASE_URL}/rest/v1/payments`, {
       method: 'POST',
       headers: svcHeaders,
       body: JSON.stringify({
         order_id: orderId,
         method: payment_method,
-        status: '결제완료',
-        paid_at: new Date().toISOString(),
+        status: '결제대기',
+        paid_at: null,
       }),
     });
 

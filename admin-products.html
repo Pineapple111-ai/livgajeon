@@ -307,7 +307,7 @@
 
     <div class="form-section">
       <h3>상세설명 이미지</h3>
-      <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">상품 상세페이지의 "상품정보" 탭 하단에 위에서부터 순서대로 길게 나열됩니다. 여러 장 추가할 수 있습니다.</p>
+      <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">상품 상세페이지의 "상품정보" 탭 하단에 위에서부터 순서대로 길게 나열됩니다. 여러 장 추가할 수 있습니다. 20MB 이하 이미지는 화질 손상 없이 원본 그대로 업로드되고, 그보다 크면 자동으로 압축됩니다.</p>
       <div class="detail-image-list" id="detailImageList"></div>
       <button type="button" class="dyn-add" id="addDetailImageBtn">+ 상세이미지 추가</button>
     </div>
@@ -608,6 +608,34 @@ async function compressImage(file, maxDim=1600, startQuality=0.85, maxSizeBytes=
   return blob;
 }
 
+// 상세설명 이미지 전용 압축: 세로로 긴 인포그래픽이 많아서
+// 세로 길이는 그대로 두고 "가로 폭"만 기준으로 줄이며, 화질을 훨씬 높게 유지한다.
+// (상세페이지 표시 폭이 760px이므로 그 2배인 1520px 정도면 고해상도 화면에서도 선명하다)
+// maxHeight는 일부 브라우저의 캔버스 처리 한계로 인한 이미지 깨짐을 막기 위한 안전장치.
+async function compressDetailImage(file, maxWidth=1520, startQuality=0.92, maxSizeBytes=8*1024*1024, maxHeight=14000){
+  const img = await loadImageFromFile(file);
+  let { width, height } = img;
+  if(width > maxWidth){
+    height = Math.round(height * (maxWidth/width));
+    width = maxWidth;
+  }
+  if(height > maxHeight){
+    width = Math.round(width * (maxHeight/height));
+    height = maxHeight;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+  let quality = startQuality;
+  let blob = await canvasToBlob(canvas, 'image/jpeg', quality);
+  while(blob && blob.size > maxSizeBytes && quality > 0.6){
+    quality -= 0.05;
+    blob = await canvasToBlob(canvas, 'image/jpeg', quality);
+  }
+  return blob;
+}
+
 function triggerFileSelect(idx){
   const input = document.createElement('input');
   input.type = 'file';
@@ -732,17 +760,20 @@ document.getElementById('addDetailImageBtn').addEventListener('click', ()=>{
     const rawFile = e.target.files[0];
     if(!rawFile) return;
 
-    let file;
-    try {
-      const compressedBlob = await compressImage(rawFile);
-      const baseName = (rawFile.name.replace(/\.[^.]+$/, '') || 'image');
-      file = new File([compressedBlob], `${baseName}.jpg`, { type: 'image/jpeg' });
-    } catch(err){
-      console.error('이미지 압축에 실패해 원본으로 진행합니다.', err);
-      file = rawFile;
+    let file = rawFile;
+    const DETAIL_IMAGE_LIMIT = 20*1024*1024;
+    if(rawFile.size > DETAIL_IMAGE_LIMIT){
+      try {
+        const compressedBlob = await compressDetailImage(rawFile, 1520, 0.92, DETAIL_IMAGE_LIMIT);
+        const baseName = (rawFile.name.replace(/\.[^.]+$/, '') || 'image');
+        file = new File([compressedBlob], `${baseName}.jpg`, { type: 'image/jpeg' });
+      } catch(err){
+        console.error('이미지 압축에 실패해 원본으로 진행합니다.', err);
+        file = rawFile;
+      }
     }
-    if(file.size > 5*1024*1024){
-      alert('압축 후에도 5MB를 초과합니다. 더 작은 이미지를 사용해주세요.');
+    if(file.size > DETAIL_IMAGE_LIMIT){
+      alert('압축 후에도 20MB를 초과합니다. 더 작은 이미지를 사용해주세요.');
       return;
     }
 

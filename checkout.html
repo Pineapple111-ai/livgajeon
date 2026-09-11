@@ -100,7 +100,7 @@
 
 <header class="site-header">
   <div class="header-inner">
-    <a href="index.html" class="logo">리브<span>가전</span></a>
+    <a href="index.html" class="logo"><img src="logo.png" alt="리브가전" style="height:40px; width:auto; display:block;"></a>
   </div>
 </header>
 
@@ -265,10 +265,13 @@ async function initCheckout(){
   renderOrderItems();
 
   // 프로필 정보로 받는사람/연락처 기본값 채우기
-  const { data: profile } = await window.sb.from('profiles').select('name, phone').eq('id', user.id).single();
+  const { data: profile } = await window.sb.from('profiles').select('name, phone, zipcode, address, address_detail').eq('id', user.id).single();
   if(profile){
     document.getElementById('f_receiver').value = profile.name || '';
     document.getElementById('f_phone').value = profile.phone || '';
+    document.getElementById('f_zip').value = profile.zipcode || '';
+    document.getElementById('f_address').value = profile.address || '';
+    document.getElementById('f_addressDetail').value = profile.address_detail || '';
   }
 }
 

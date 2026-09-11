@@ -8,6 +8,7 @@
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js"></script>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -44,6 +45,9 @@
   .field-row{display:flex; gap:10px;}
   .field-row .field{flex:1;}
   .field-hint{font-size:12px; color:var(--muted); margin-top:6px;}
+  .zip-row{display:flex; gap:8px;}
+  .zip-row input{flex:1;}
+  .zip-row button{padding:0 14px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-weight:600; color:var(--sub); white-space:nowrap;}
   .field-error{font-size:12px; color:var(--point); margin-top:6px; display:none;}
 
   .check-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;}
@@ -84,7 +88,7 @@
 
 <header class="site-header">
   <div class="header-inner">
-    <a href="index.html" class="logo">리브<span>가전</span></a>
+    <a href="index.html" class="logo"><img src="logo.png" alt="리브가전" style="height:40px; width:auto; display:block;"></a>
   </div>
 </header>
 
@@ -152,6 +156,21 @@
         <div class="field">
           <label>휴대폰번호</label>
           <input type="tel" id="signupPhone" placeholder="010-0000-0000" maxlength="13" inputmode="numeric" oninput="formatKoreanPhone(this)" required>
+        </div>
+        <div class="field">
+          <label>우편번호</label>
+          <div class="zip-row">
+            <input type="text" id="signupZip" placeholder="우편번호" readonly>
+            <button type="button" id="signupZipSearchBtn">우편번호 검색</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>주소</label>
+          <input type="text" id="signupAddress" placeholder="우편번호 검색 후 자동 입력됩니다" readonly>
+        </div>
+        <div class="field">
+          <label>상세주소</label>
+          <input type="text" id="signupAddressDetail" placeholder="상세주소를 입력해주세요">
         </div>
 
         <div class="agree-box">
@@ -236,6 +255,17 @@ document.querySelectorAll('.agree-item-cb').forEach(cb=>{
   });
 });
 
+// ---------- 회원가입 우편번호 검색 ----------
+document.getElementById('signupZipSearchBtn').addEventListener('click', function(){
+  new daum.Postcode({
+    oncomplete: function(data){
+      document.getElementById('signupZip').value = data.zonecode;
+      document.getElementById('signupAddress').value = data.roadAddress || data.jibunAddress;
+      document.getElementById('signupAddressDetail').focus();
+    }
+  }).open();
+});
+
 // ---------- 회원가입 ----------
 document.getElementById('signupForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
@@ -247,6 +277,9 @@ document.getElementById('signupForm').addEventListener('submit', async (e)=>{
   const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
   const name = document.getElementById('signupName').value.trim();
   const phone = document.getElementById('signupPhone').value.trim();
+  const zipcode = document.getElementById('signupZip').value.trim();
+  const address = document.getElementById('signupAddress').value.trim();
+  const address_detail = document.getElementById('signupAddressDetail').value.trim();
 
   if(password !== passwordConfirm){
     errorBox.textContent = '비밀번호가 일치하지 않습니다.';
@@ -262,7 +295,7 @@ document.getElementById('signupForm').addEventListener('submit', async (e)=>{
 
   const { error } = await window.sb.auth.signUp({
     email, password,
-    options: { data: { name, phone } }
+    options: { data: { name, phone, zipcode, address, address_detail } }
   });
 
   if(error){

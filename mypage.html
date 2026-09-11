@@ -8,6 +8,7 @@
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js"></script>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <style>
   :root{
     --main:#172033; --sub:#39445A; --bg:#F7F8FA; --point:#C83D3D;
@@ -108,6 +109,9 @@
   .field input{width:100%; padding:12px 14px; border:1px solid var(--gray); border-radius:var(--radius); font-size:14px; font-family:inherit;}
   .field input:disabled{background:var(--bg); color:var(--muted);}
   .btn-save{padding:13px 28px; background:var(--main); color:var(--white); border-radius:var(--radius); font-size:14px; font-weight:700;}
+  .zip-row{display:flex; gap:8px;}
+  .zip-row input{flex:1;}
+  .zip-row button{padding:0 14px; border:1px solid var(--gray); border-radius:var(--radius); font-size:13px; font-weight:600; color:var(--sub); white-space:nowrap;}
 
   @media (max-width:800px){
     .mypage-layout{grid-template-columns:1fr;}
@@ -122,7 +126,7 @@
 
 <header class="site-header">
   <div class="header-inner">
-    <a href="index.html" class="logo">리브<span>가전</span></a>
+    <a href="index.html" class="logo"><img src="logo.png" alt="리브가전" style="height:40px; width:auto; display:block;"></a>
     <button class="icon-btn" aria-label="장바구니" onclick="location.href='cart.html'">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h2l2 11h10l2-8H7"/><circle cx="10" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/></svg>
     </button>
@@ -262,6 +266,15 @@
           <div class="field"><label>이메일</label><input type="email" id="pf_email" disabled></div>
           <div class="field"><label>이름</label><input type="text" id="pf_name"></div>
           <div class="field"><label>휴대폰번호</label><input type="tel" id="pf_phone" placeholder="010-0000-0000" maxlength="13" inputmode="numeric" oninput="formatKoreanPhone(this)"></div>
+          <div class="field">
+            <label>우편번호</label>
+            <div class="zip-row">
+              <input type="text" id="pf_zip" placeholder="우편번호" readonly>
+              <button type="button" id="pf_zipSearchBtn">우편번호 검색</button>
+            </div>
+          </div>
+          <div class="field"><label>주소</label><input type="text" id="pf_address" placeholder="우편번호 검색 후 자동 입력됩니다" readonly></div>
+          <div class="field"><label>상세주소</label><input type="text" id="pf_addressDetail" placeholder="상세주소를 입력해주세요"></div>
           <button type="submit" class="btn-save">저장하기</button>
         </form>
       </div>
@@ -396,7 +409,7 @@ async function initMyPage(){
 
   const { data: profile } = await window.sb
     .from('profiles')
-    .select('name, phone, grade, points')
+    .select('name, phone, grade, points, zipcode, address, address_detail')
     .eq('id', user.id)
     .single();
 
@@ -408,6 +421,9 @@ async function initMyPage(){
   document.getElementById('pf_email').value = user.email;
   document.getElementById('pf_name').value = profile?.name || '';
   document.getElementById('pf_phone').value = profile?.phone || '';
+  document.getElementById('pf_zip').value = profile?.zipcode || '';
+  document.getElementById('pf_address').value = profile?.address || '';
+  document.getElementById('pf_addressDetail').value = profile?.address_detail || '';
 
   const { count: orderCount } = await window.sb
     .from('orders')
@@ -425,15 +441,28 @@ async function initMyPage(){
 }
 initMyPage();
 
+document.getElementById('pf_zipSearchBtn').addEventListener('click', function(){
+  new daum.Postcode({
+    oncomplete: function(data){
+      document.getElementById('pf_zip').value = data.zonecode;
+      document.getElementById('pf_address').value = data.roadAddress || data.jibunAddress;
+      document.getElementById('pf_addressDetail').focus();
+    }
+  }).open();
+});
+
 document.getElementById('profileForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   if(!currentUser) return;
   const name = document.getElementById('pf_name').value.trim();
   const phone = document.getElementById('pf_phone').value.trim();
+  const zipcode = document.getElementById('pf_zip').value.trim();
+  const address = document.getElementById('pf_address').value.trim();
+  const address_detail = document.getElementById('pf_addressDetail').value.trim();
 
   const { error } = await window.sb
     .from('profiles')
-    .update({ name, phone })
+    .update({ name, phone, zipcode, address, address_detail })
     .eq('id', currentUser.id);
 
   if(error){ alert('저장에 실패했습니다: ' + error.message); return; }

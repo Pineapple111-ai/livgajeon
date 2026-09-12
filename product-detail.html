@@ -36,10 +36,10 @@
 
   /* Detail top */
   .detail-top{display:grid; grid-template-columns:1fr 1fr; gap:56px; padding-bottom:56px;}
-  .gallery-main{aspect-ratio:1/1; background:var(--bg); border:1px solid var(--gray); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; margin-bottom:12px;}
+  .gallery-main{aspect-ratio:1/1; background:var(--bg); border:1px solid var(--gray); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; margin-bottom:12px; position:relative; overflow:hidden;}
   .gallery-main svg{width:38%; height:38%; color:var(--sub);}
   .gallery-thumbs{display:flex; gap:10px;}
-  .gallery-thumbs .thumb{width:72px; height:72px; border:1px solid var(--gray); border-radius:var(--radius); background:var(--bg); display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .gallery-thumbs .thumb{width:72px; height:72px; border:1px solid var(--gray); border-radius:var(--radius); background:var(--bg); display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden;}
   .gallery-thumbs .thumb.active{border-color:var(--main); border-width:2px;}
   .gallery-thumbs .thumb svg{width:50%; height:50%; color:var(--sub);}
 
@@ -356,15 +356,15 @@ function renderProduct(){
   const images = allImages.filter(img=>img.type!=='detail').slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const detailImages = allImages.filter(img=>img.type==='detail').slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   if(images.length){
-    document.getElementById('galleryMain').innerHTML = `<img src="${images[0].url}" alt="${product.name}" style="width:100%; height:100%; object-fit:cover;">`;
+    document.getElementById('galleryMain').innerHTML = `<img src="${images[0].url}" alt="${product.name}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">`;
     document.getElementById('galleryThumbs').innerHTML = images.map((img,i)=>`
-      <div class="thumb ${i===0?'active':''}" data-url="${img.url}"><img src="${img.url}" style="width:100%; height:100%; object-fit:cover;"></div>
+      <div class="thumb ${i===0?'active':''}" data-url="${img.url}"><img src="${img.url}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;"></div>
     `).join('');
     document.querySelectorAll('.gallery-thumbs .thumb').forEach(t=>{
       t.addEventListener('click', ()=>{
         document.querySelectorAll('.gallery-thumbs .thumb').forEach(x=>x.classList.remove('active'));
         t.classList.add('active');
-        document.getElementById('galleryMain').innerHTML = `<img src="${t.dataset.url}" alt="${product.name}" style="width:100%; height:100%; object-fit:cover;">`;
+        document.getElementById('galleryMain').innerHTML = `<img src="${t.dataset.url}" alt="${product.name}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">`;
       });
     });
   } else {
